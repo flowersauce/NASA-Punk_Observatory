@@ -1,0 +1,79 @@
+/* =========================================
+   NASA-Punk Transition System (Module)
+   Version: 1.0
+   ========================================= */
+
+/* 1. 遮罩层容器 (超宽设计防止漏角) */
+.transition-curtain {
+    position: fixed;
+    top: 0;
+    left: -50%; /* 向左偏移，保证居中 */
+    width: 200%; /* 超宽 200% 防止 skew 导致的边角空白 */
+    height: 100%;
+    z-index: 9999;
+    pointer-events: none; /* 允许点击穿透（当它不可见时） */
+    display: flex;
+    /* 默认状态：完全位于左侧屏幕外 (准备入场遮蔽) */
+    /* 或者用于初始化时的状态控制，JS 会覆盖这个 transform */
+    transform: skewX(-15deg) translateX(-100%);
+}
+
+/* 2. 四色条带 */
+.curtain-col {
+    flex: 1;
+    height: 100%;
+    transform: scaleX(1.1); /* 轻微重叠防止缝隙 */
+}
+
+/* 引用 style.css 中的全局变量 */
+.c1 {
+    background: var(--const-red);
+}
+
+.c2 {
+    background: var(--const-orange);
+}
+
+.c3 {
+    background: var(--const-yellow);
+}
+
+.c4 {
+    background: var(--const-blue);
+}
+
+/* 3. 动画定义 */
+
+/* [EXIT] 离场/跳转动画：从左往右遮盖屏幕 */
+/* 触发时机：用户点击链接跳转前 */
+.curtain-exit {
+    animation: wipe-in 0.8s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+}
+
+/* [INTRO] 入场/加载动画：从屏幕中间向右揭示 */
+/* 触发时机：页面加载完成 (onload) */
+.curtain-intro {
+    animation: wipe-out 0.8s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+}
+
+@keyframes wipe-in {
+    from {
+        transform: skewX(-15deg) translateX(-100%);
+    }
+    /* 左侧屏幕外 */
+    to {
+        transform: skewX(-15deg) translateX(0%);
+    }
+    /* 覆盖屏幕中心 */
+}
+
+@keyframes wipe-out {
+    from {
+        transform: skewX(-15deg) translateX(0%);
+    }
+    /* 覆盖屏幕中心 */
+    to {
+        transform: skewX(-15deg) translateX(100%);
+    }
+    /* 右侧屏幕外 */
+}

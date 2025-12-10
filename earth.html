@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA-Punk : SOL-III (Terra)</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/transition.css">
+</head>
+<body>
+<div class="transition-curtain start-covered" id="global-curtain">
+    <div class="curtain-col c1"></div>
+    <div class="curtain-col c2"></div>
+    <div class="curtain-col c3"></div>
+    <div class="curtain-col c4"></div>
+</div>
+
+<div class="brand-stripe">
+    <div class="stripe-seg s-1"></div>
+    <div class="stripe-seg s-2"></div>
+    <div class="stripe-seg s-3"></div>
+    <div class="stripe-seg s-4"></div>
+</div>
+
+<canvas id="topo-canvas"></canvas>
+<div id="canvas-container"></div>
+
+<div id="ui-layer">
+    <div class="right-dock">
+        <div class="header-block">
+            <h1>SOL III <span style="font-size: 0.5em; opacity: 0.6; vertical-align: middle;">[TERRA]</span></h1>
+            <div class="sub-text">SYS: <b>SOL</b> // ORB: <b>1.00 AU</b> // ECC: <b>0.0167</b></div>
+        </div>
+
+        <div class="data-block">
+            <div class="data-row">&gt; TOPO_SCAN: <span>SILICATE / LIQUID_H2O</span></div>
+            <div class="data-row">&gt; ATMOS_SCAN: <span>N2 / O2</span> <span class="alert">[LIFE_SUPPORT]</span></div>
+            <div class="data-row">&gt; ORBITAL_ASSETS: <span>5 DETECTED</span></div>
+            <div class="data-row">&gt; CAM_ZOOM: <span id="zoom-text-display">100%</span></div>
+        </div>
+    </div>
+
+    <div class="vertical-controls">
+        <div class="v-slider-track">
+            <div class="v-ticks">
+                <div class="tick" title="50%"></div>
+                <div class="tick-sub"></div>
+                <div class="tick-sub"></div>
+                <div class="tick-sub"></div>
+                <div class="tick-sub"></div>
+
+                <div class="tick" title="100%"></div>
+
+                <div class="tick-sub"></div>
+                <div class="tick-sub"></div>
+                <div class="tick-sub"></div>
+                <div class="tick-sub"></div>
+                <div class="tick" title="200%"></div>
+            </div>
+
+            <input type="range" class="vertical" id="cam-zoom-slider" min="0" max="100" value="50" step="10">
+        </div>
+        <div class="v-label">OPTICS</div>
+    </div>
+
+    <div class="system-monitor-container"
+         onclick="TransitionManager.navigate('index.html')"
+         title="RETURN TO SYSTEM VIEW"
+         style="cursor: pointer;">
+
+        <div class="monitor-label label-top">SYSTEM OVERVIEW // SOL</div>
+        <div class="sun-marker"></div>
+
+        <div class="orbit-path o-neptune"></div>
+        <div class="planet-container c-neptune">
+            <div class="planet-marker p-neptune"></div>
+        </div>
+        <div class="orbit-path o-uranus"></div>
+        <div class="planet-container c-uranus">
+            <div class="planet-marker p-uranus"></div>
+        </div>
+        <div class="orbit-path o-saturn"></div>
+        <div class="planet-container c-saturn">
+            <div class="planet-marker p-saturn"></div>
+        </div>
+        <div class="orbit-path o-jupiter"></div>
+        <div class="planet-container c-jupiter">
+            <div class="planet-marker p-jupiter"></div>
+        </div>
+        <div class="orbit-path o-mars"></div>
+        <div class="planet-container c-mars">
+            <div class="planet-marker p-mars"></div>
+        </div>
+        <div class="orbit-path o-earth orbit-active"></div>
+        <div class="planet-container c-earth">
+            <div class="planet-marker p-earth">
+                <div class="target-reticle">
+                    <div class="reticle-corner rc-tl"></div>
+                    <div class="reticle-corner rc-tr"></div>
+                    <div class="reticle-corner rc-bl"></div>
+                    <div class="reticle-corner rc-br"></div>
+                </div>
+            </div>
+        </div>
+        <div class="orbit-path o-venus"></div>
+        <div class="planet-container c-venus">
+            <div class="planet-marker p-venus"></div>
+        </div>
+        <div class="orbit-path o-mercury"></div>
+        <div class="planet-container c-mercury">
+            <div class="planet-marker p-mercury"></div>
+        </div>
+
+        <div class="scanner-trail"></div>
+        <div class="scanner-line-sys"></div>
+        <div class="monitor-label label-bottom">TGT: RA 00h 00m | DEC +00° <span style="margin-left:10px; color:var(--const-orange)">EPOCH: J2000.0</span></div>
+    </div>
+</div>
+
+<script src="./js/three.min.js"></script>
+<script src="./js/simplex-noise.min.js"></script>
+<script src="./js/telemetry.js"></script>
+<script src="./js/interaction.js"></script>
+<script src="./js/transition.js"></script>
+<script src="./js/earth.js"></script>
+</body>
+</html>

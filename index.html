@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA-Punk Observatory : SYSTEM SELECT</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/transition.css">
+</head>
+<body>
+<div class="transition-curtain start-covered" id="global-curtain">
+    <div class="curtain-col c1"></div>
+    <div class="curtain-col c2"></div>
+    <div class="curtain-col c3"></div>
+    <div class="curtain-col c4"></div>
+</div>
+
+<div class="right-dock">
+    <div class="header-block">
+        <h1>SYSTEM : SOL</h1>
+        <div class="sub-text">SECTOR: <b>SOL_SYSTEM</b> // STAR: <b>G2V_DWARF</b> // PLANETS: <b>8</b></div>
+    </div>
+
+    <div class="data-block">
+        <div class="data-row">&gt; SYSTEM_OVERVIEW: <span class="alert">SOL</span></div>
+        <div class="terminal-output" id="terminal-content"></div>
+    </div>
+</div>
+
+<div class="nav-stage">
+    <div class="axis-group" id="axis-group">
+        <div class="axis-line"></div>
+
+        <div class="planet-node node-sun" data-link="sun.html">
+            <div class="node-label">SOL</div>
+            <div class="planet-system">
+                <div class="planet-body"></div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL [STAR]&#10;> TYPE: G2V YELLOW DWARF&#10;> STATUS: ACTIVE
+            </div>
+        </div>
+
+        <div class="planet-node node-mercury" data-link="mercury.html">
+            <div class="node-label">MERCURY</div>
+            <div class="planet-system">
+                <div class="planet-body"></div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL-I [MERCURY]&#10;> TYPE: TERRESTRIAL&#10;> STATUS: ONLINE
+            </div>
+        </div>
+
+        <div class="planet-node node-venus" data-link="venus.html">
+            <div class="node-label">VENUS</div>
+            <div class="planet-system">
+                <div class="planet-body"></div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL-II [VENUS]&#10;> TYPE: TERRESTRIAL&#10;> STATUS: ONLINE
+            </div>
+        </div>
+
+        <div class="planet-node node-earth" data-link="earth.html">
+            <div class="node-label">TERRA</div>
+            <div class="planet-system">
+                <div class="planet-body"></div>
+                <div class="satellite-orbit orbit-hidden">
+                    <div class="satellite"></div>
+                </div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL-III [TERRA]&#10;> TYPE: TERRESTRIAL&#10;> STATUS: HABITABLE
+            </div>
+        </div>
+
+        <div class="planet-node node-mars" data-link="mars.html">
+            <div class="node-label">MARS</div>
+            <div class="planet-system">
+                <div class="planet-body"></div>
+                <div class="satellite-orbit orbit-hidden o-phobos">
+                    <div class="satellite sat-small s-phobos"></div>
+                </div>
+                <div class="satellite-orbit orbit-hidden o-deimos">
+                    <div class="satellite sat-small s-deimos"></div>
+                </div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL-IV [MARS]&#10;> TYPE: TERRESTRIAL&#10;> STATUS: ONLINE
+            </div>
+        </div>
+
+        <div class="planet-node node-jupiter" data-link="jupiter.html">
+            <div class="node-label">JUPITER</div>
+            <div class="planet-system">
+                <div class="planet-body"></div>
+                <div class="satellite-orbit orbit-hidden">
+                    <div class="satellite"></div>
+                </div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL-V [JUPITER]&#10;> TYPE: GAS GIANT&#10;> STATUS: ONLINE
+            </div>
+        </div>
+
+        <div class="planet-node node-saturn" data-link="saturn.html">
+            <div class="node-label">SATURN</div>
+            <div class="planet-system">
+                <div class="ring-back"></div>
+                <div class="planet-body"></div>
+                <div class="ring-front"></div>
+                <div class="satellite-orbit orbit-hidden">
+                    <div class="satellite"></div>
+                </div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL-VI [SATURN]&#10;> TYPE: GAS GIANT&#10;> STATUS: ONLINE
+            </div>
+        </div>
+
+        <div class="planet-node node-uranus" data-link="uranus.html">
+            <div class="node-label">URANUS</div>
+            <div class="planet-system">
+                <div class="ring-back"></div>
+                <div class="planet-body"></div>
+                <div class="ring-front"></div>
+                <div class="satellite-orbit orbit-hidden">
+                    <div class="satellite"></div>
+                </div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL-VII [URANUS]&#10;> TYPE: ICE GIANT&#10;> STATUS: ONLINE
+            </div>
+        </div>
+
+        <div class="planet-node node-neptune" data-link="neptune.html">
+            <div class="node-label">NEPTUNE</div>
+            <div class="planet-system">
+                <div class="ring-back ring-faint"></div>
+                <div class="planet-body"></div>
+                <div class="ring-front ring-faint"></div>
+                <div class="satellite-orbit orbit-hidden o-triton">
+                    <div class="satellite s-triton"></div>
+                </div>
+            </div>
+            <div class="node-data" style="display:none;">> TARGET: SOL-VIII [NEPTUNE]&#10;> TYPE: ICE GIANT&#10;> STATUS: ONLINE
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="zoom-controls">
+    <div class="zoom-label">FOV_SCALE // <span id="scale-val" class="zoom-value-display">100%</span></div>
+    <input type="range" id="zoom-slider" min="0" max="100" value="50" step="10">
+    <div class="zoom-ticks">
+        <div class="tick" title="50%"></div>
+        <div class="tick-sub"></div>
+        <div class="tick-sub"></div>
+        <div class="tick-sub"></div>
+        <div class="tick-sub"></div>
+        <div class="tick" title="100%"></div>
+        <div class="tick-sub"></div>
+        <div class="tick-sub"></div>
+        <div class="tick-sub"></div>
+        <div class="tick-sub"></div>
+        <div class="tick" title="200%"></div>
+    </div>
+</div>
+
+<canvas id="topo-canvas"></canvas>
+
+<script src="./js/simplex-noise.min.js"></script>
+<script src="./js/transition.js"></script>
+
+<script src="./js/index.js"></script>
+
+</body>
+</html>

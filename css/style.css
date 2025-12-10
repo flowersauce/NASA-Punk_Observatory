@@ -1,0 +1,1166 @@
+/* =========================================
+   NASA-Punk Observatory : Common Styles
+   v5.0 - Final Unified Master
+   ========================================= */
+
+/* --- 1. 字体加载 --- */
+@font-face {
+    font-family: 'Jura';
+    src: url('../fonts/Jura-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Jura';
+    src: url('../fonts/Jura-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Jura';
+    src: url('../fonts/Jura-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Roboto Mono';
+    src: url('../fonts/RobotoMono-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+:root {
+    --bg-navy: #0e141f;
+    --line-color: #3b4e6b;
+
+    /* Starfield Official Colors */
+    --const-red: #c82337;
+    --const-orange: #e06236;
+    --const-yellow: #d7ab61;
+    --const-blue: #2f4c79;
+
+    --text-white: #e8e8e8;
+    --text-dim: #6d7d8c;
+    --sun-glow: #fff5cc;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: var(--bg-navy);
+    font-family: 'Jura', 'Segoe UI', sans-serif;
+    color: var(--text-white);
+    cursor: crosshair;
+    user-select: none;
+}
+
+/* --- 2. 品牌彩条 & 背景 --- */
+.brand-stripe {
+    position: absolute;
+    right: 40px;
+    top: 0;
+    bottom: 0;
+    width: 12px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.stripe-seg {
+    width: 100%;
+    height: 25%;
+}
+
+.s-1 {
+    background: var(--const-red);
+}
+
+.s-2 {
+    background: var(--const-orange);
+}
+
+.s-3 {
+    background: var(--const-yellow);
+}
+
+.s-4 {
+    background: var(--const-blue);
+}
+
+#topo-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    opacity: 0.3;
+}
+
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    filter: contrast(1.1) brightness(1.1);
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* --- 3. 右侧 UI Dock --- */
+.right-dock {
+    position: absolute;
+    top: 60px;
+    right: 112px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.header-block {
+    border-right: 3px solid var(--const-orange);
+    padding-right: 20px;
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+h1 {
+    font-size: 42px;
+    letter-spacing: 6px;
+    margin: 0;
+    line-height: 1;
+    text-transform: uppercase;
+    font-weight: 700;
+    text-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.sub-text {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 11px;
+    color: var(--const-yellow);
+    letter-spacing: 1px;
+    margin-top: 8px;
+    white-space: nowrap;
+}
+
+.sub-text b {
+    color: var(--text-white);
+}
+
+.data-block {
+    text-align: left;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    padding-right: 20px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 11px;
+    line-height: 2.4;
+    color: var(--text-dim);
+    align-self: flex-end;
+    width: fit-content;
+}
+
+.data-row span {
+    color: var(--text-white);
+    font-weight: 500;
+}
+
+.data-row .alert {
+    color: var(--const-orange);
+    font-weight: 700;
+}
+
+/* 终端文字输出 */
+.terminal-output {
+    display: block;
+    min-height: 80px;
+    color: var(--text-dim);
+    font-weight: 400;
+    white-space: pre-wrap;
+    margin-top: 0;
+    font-size: 11px;
+    line-height: 2.4;
+}
+
+.blink-cursor {
+    color: var(--const-orange);
+    font-weight: bold;
+    animation: blink 1s infinite;
+}
+
+/* --- 4. 星图雷达 (System Monitor) --- */
+.system-monitor-container {
+    position: absolute;
+    left: 90px;
+    bottom: 90px;
+    width: 260px;
+    height: 260px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto !important;
+    cursor: pointer;
+    z-index: 50;
+    /* 无缩放特效，仅保留基础状态 */
+}
+
+.sun-marker {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: var(--sun-glow);
+    border-radius: 50%;
+    box-shadow: 0 0 15px var(--sun-glow);
+    z-index: 10;
+}
+
+.orbit-path {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px dashed var(--line-color);
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.orbit-path.orbit-active {
+    border-color: rgba(224, 98, 54, 0.6) !important;
+    opacity: 0.8 !important;
+    border-style: solid;
+}
+
+.planet-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    animation: rotateOrbit linear infinite;
+    pointer-events: none;
+}
+
+.planet-marker {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+}
+
+/* 雷达中的行星样式 (小图标) */
+.o-mercury {
+    width: 30px;
+    height: 30px;
+}
+
+.c-mercury {
+    animation-duration: 4s;
+}
+
+.p-mercury {
+    width: 3px;
+    height: 3px;
+    background: #aaa;
+    left: calc(50% - 15px);
+}
+
+.o-venus {
+    width: 50px;
+    height: 50px;
+}
+
+.c-venus {
+    animation-duration: 8s;
+}
+
+.p-venus {
+    width: 4px;
+    height: 4px;
+    background: #eec058;
+    left: calc(50% - 25px);
+}
+
+.o-earth {
+    width: 75px;
+    height: 75px;
+}
+
+.c-earth {
+    animation-duration: 15s;
+}
+
+.p-earth {
+    width: 4px;
+    height: 4px;
+    background: #4b70dd;
+    left: calc(50% - 37.5px);
+}
+
+.o-mars {
+    width: 95px;
+    height: 95px;
+}
+
+.c-mars {
+    animation-duration: 25s;
+}
+
+.p-mars {
+    width: 4px;
+    height: 4px;
+    background: var(--const-red);
+    left: calc(50% - 47.5px);
+}
+
+.o-jupiter {
+    width: 135px;
+    height: 135px;
+    opacity: 0.3;
+}
+
+.c-jupiter {
+    animation-duration: 50s;
+}
+
+.p-jupiter {
+    width: 10px;
+    height: 10px;
+    background: #d8ca9d;
+    left: calc(50% - 67.5px);
+}
+
+.o-saturn {
+    width: 170px;
+    height: 170px;
+    opacity: 0.3;
+}
+
+.c-saturn {
+    animation-duration: 80s;
+}
+
+.p-saturn {
+    width: 8px;
+    height: 8px;
+    background: #e0d0a0;
+    left: calc(50% - 85px);
+    z-index: 15;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(224, 208, 160, 0.3);
+}
+
+.o-uranus {
+    width: 205px;
+    height: 205px;
+    opacity: 0.2;
+}
+
+.c-uranus {
+    animation-duration: 110s;
+}
+
+.p-uranus {
+    width: 6px;
+    height: 6px;
+    background: #7fffd4;
+    left: calc(50% - 102.5px);
+}
+
+.o-neptune {
+    width: 240px;
+    height: 240px;
+    opacity: 0.2;
+}
+
+.c-neptune {
+    animation-duration: 150s;
+}
+
+.p-neptune {
+    width: 6px;
+    height: 6px;
+    background: #4b70dd;
+    left: calc(50% - 120px);
+}
+
+/* 锁定框 */
+.target-reticle {
+    position: absolute;
+    z-index: 20;
+    pointer-events: none;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 14px;
+}
+
+.target-reticle.large {
+    width: 24px;
+    height: 24px;
+}
+
+.reticle-corner {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-color: var(--const-orange);
+    border-style: solid;
+}
+
+.rc-tl {
+    top: 0;
+    left: 0;
+    border-width: 1px 0 0 1px;
+}
+
+.rc-tr {
+    top: 0;
+    right: 0;
+    border-width: 1px 1px 0 0;
+}
+
+.rc-bl {
+    bottom: 0;
+    left: 0;
+    border-width: 0 0 1px 1px;
+}
+
+.rc-br {
+    bottom: 0;
+    right: 0;
+    border-width: 0 1px 1px 0;
+}
+
+/* 扫描仪 */
+.scanner-trail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    background: conic-gradient(from 90deg, transparent 0deg, transparent 315deg, rgba(47, 76, 121, 0.35) 360deg);
+    -webkit-mask: radial-gradient(transparent 10px, #000 12px, #000 99%, transparent 100%);
+    mask: radial-gradient(transparent 10px, #000 12px, #000 99%, transparent 100%);
+    animation: scanSys 12s linear infinite;
+}
+
+.scanner-line-sys {
+    position: absolute;
+    width: 50%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--const-blue));
+    top: 50%;
+    left: 50%;
+    transform-origin: left center;
+    animation: scanSys 12s linear infinite;
+    opacity: 0.9;
+    z-index: 11;
+    box-shadow: 0 0 4px var(--const-blue);
+}
+
+.monitor-label {
+    position: absolute;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+}
+
+.label-top {
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--const-yellow);
+    white-space: nowrap;
+}
+
+.label-bottom {
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.label-data {
+    font-weight: bold;
+    color: var(--text-white);
+}
+
+/* 动画定义 */
+@keyframes rotateOrbit {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes scanSys {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+
+/* =========================================
+   Universal Slider Controls (Zoom & Vertical)
+   ========================================= */
+
+/* 1. 水平缩放条 (主页/导航页) */
+.zoom-controls {
+    position: fixed;
+    top: 82.5%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+    pointer-events: auto;
+}
+
+.zoom-label {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-align: center;
+    width: 100%;
+}
+
+.zoom-value-display {
+    color: var(--const-orange);
+    font-weight: bold;
+}
+
+/* 2. 垂直缩放条 (星球详情页) */
+.vertical-controls {
+    position: fixed;
+    right: 112px;
+    bottom: 90px;
+    width: 40px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: auto;
+}
+
+/* 复用 v-label 作为垂直标签 */
+.v-label {
+    position: absolute;
+    bottom: -25px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 10px;
+    color: var(--const-orange);
+    letter-spacing: 1px;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+}
+
+/* --- 滑块通用复位 --- */
+input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+/* 滑轨 (通用) */
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 1px;
+    cursor: pointer;
+    background: var(--line-color);
+    border: none;
+}
+
+/* 滑块头 (通用) */
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 14px;
+    width: 14px;
+    background: var(--bg-navy);
+    border: 1px solid var(--const-orange);
+    /* (1 - 14) / 2 = -6.5px */
+    margin-top: -6.5px;
+    box-shadow: 0 0 10px rgba(224, 98, 54, 0.4);
+    transition: background 0.2s, transform 0.1s;
+    cursor: col-resize;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+    background: var(--const-orange);
+    transform: scale(1.2);
+}
+
+.active input[type=range]::-webkit-slider-thumb {
+    background: var(--const-orange);
+}
+
+/* --- 刻度系统 (Ticks) --- */
+
+/* 默认刻度 (竖线，用于水平滑块) */
+.tick {
+    width: 1px;
+    height: 6px;
+    background: var(--text-dim);
+}
+
+.tick-sub {
+    width: 1px;
+    height: 3px;
+    background: var(--text-dim);
+    opacity: 0.3;
+}
+
+/* 水平刻度容器 */
+.zoom-ticks {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+
+    /* [核心修改] 增加间距：6px -> 12px */
+    /* 这让刻度线离滑块更远一点，不再拥挤，且与上方Label的间距对称 */
+    margin-top: 12px;
+
+    padding: 0 6px; /* 保持左右余量以对齐滑块中心 */
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+/* 垂直刻度容器 */
+.v-slider-track {
+    position: relative;
+    width: 100%;
+    height: 180px;
+}
+
+.v-ticks {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column-reverse; /* 0在下 */
+    justify-content: space-between;
+    padding: 6px 0; /* 上下各留6px余量 */
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+/* 垂直刻度覆写 (横线) */
+.vertical-controls .tick {
+    width: 6px;
+    height: 1px;
+}
+
+.vertical-controls .tick-sub {
+    width: 3px;
+    height: 1px;
+}
+
+/* --- 垂直滑块特殊修正 --- */
+input[type=range].vertical {
+    width: 180px;
+    height: 20px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: -90px;
+    margin-top: -10px;
+    transform: rotate(-90deg);
+    cursor: row-resize;
+    z-index: 10;
+}
+
+input[type=range].vertical::-webkit-slider-thumb {
+    cursor: row-resize;
+    margin-top: -6.5px; /* 保持与水平一致 */
+}
+
+
+/* =========================================
+   Navigation & System Select Specifics
+   ========================================= */
+
+/* 导航舞台 */
+.nav-stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.axis-group {
+    position: relative;
+    width: auto;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    gap: 0px;
+    pointer-events: auto;
+}
+
+.axis-line {
+    position: absolute;
+    top: 50%;
+    left: 70px;
+    right: 16px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    z-index: 0;
+    transform: translateY(-50%);
+}
+
+/* 星球节点 */
+.planet-node {
+    position: relative;
+    z-index: 10;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.3s;
+    flex-shrink: 0;
+}
+
+.planet-node[data-link=""] {
+    cursor: not-allowed;
+}
+
+.planet-node:hover {
+    opacity: 0.8;
+}
+
+.planet-system {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform: rotate(0deg);
+    width: 100%;
+    height: 100%;
+}
+
+/* 实体星球 (遮挡中线) */
+.planet-body {
+    border-radius: 50%;
+    background-color: var(--bg-navy);
+    border: 2px solid var(--planet-color);
+    position: relative;
+    z-index: 5;
+    box-sizing: border-box;
+    transition: all 0.3s ease-out;
+    box-shadow: inset -4px -4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.planet-node:hover .planet-body {
+    background: var(--text-white);
+    border-color: var(--text-white);
+    box-shadow: 0 0 30px var(--planet-color);
+    transform: scale(1.1);
+}
+
+/* 光环与卫星 */
+.ring-back {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid var(--planet-color);
+    opacity: 0.4;
+    z-index: 1;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+}
+
+.ring-front {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 3px solid var(--planet-color);
+    opacity: 0.8;
+    z-index: 10;
+    clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%);
+    pointer-events: none;
+}
+
+.ring-faint {
+    border-width: 1px;
+    opacity: 0.2;
+}
+
+/* 修正语法 */
+
+.satellite-orbit {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    z-index: 6;
+    pointer-events: none;
+}
+
+.orbit-hidden {
+    border: none;
+}
+
+.satellite {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    background: var(--text-white);
+    border-radius: 50%;
+    margin-left: -2px;
+    margin-top: -2px;
+}
+
+.sat-small {
+    width: 3px;
+    height: 3px;
+    margin-left: -1.5px;
+    margin-top: -1.5px;
+}
+
+@keyframes orbit-anim {
+    from {
+        transform: rotate(0deg) translateX(var(--sat-dist)) rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg) translateX(var(--sat-dist)) rotate(-360deg);
+    }
+}
+
+/* 悬浮标签 */
+.node-label {
+    position: absolute;
+    top: -70px;
+    font-family: 'Jura', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--const-blue);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease-out;
+    pointer-events: none;
+    text-shadow: 0 0 8px rgba(47, 76, 121, 0.8);
+}
+
+.planet-node:hover .node-label {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 星球独立配置 (V21.3) */
+.node-sun {
+    width: 160px;
+    height: 160px;
+    --planet-color: var(--const-yellow);
+    margin-left: -80px;
+}
+
+.node-sun .planet-body {
+    width: 100%;
+    height: 100%;
+    box-shadow: 0 0 80px rgba(215, 171, 97, 0.4);
+}
+
+.node-sun .planet-body::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85%;
+    height: 85%;
+    border: 2px dashed var(--const-orange);
+    border-radius: 50%;
+    animation: spin 90s linear infinite;
+}
+
+.node-mercury {
+    width: 20px;
+    height: 20px;
+    --planet-color: #A5A5A5;
+}
+
+.node-mercury .planet-body {
+    width: 100%;
+    height: 100%;
+}
+
+.node-venus {
+    width: 34px;
+    height: 34px;
+    --planet-color: #D4AF37;
+}
+
+.node-venus .planet-system {
+    transform: rotate(177deg);
+}
+
+.node-venus .planet-body {
+    width: 100%;
+    height: 100%;
+}
+
+.node-earth {
+    width: 36px;
+    height: 36px;
+    --planet-color: #2492eb;
+}
+
+.node-earth .planet-system {
+    transform: rotate(-23.4deg);
+}
+
+.node-earth .planet-body {
+    width: 100%;
+    height: 100%;
+}
+
+.node-earth .satellite-orbit {
+    width: 70px;
+    height: 70px;
+    animation: spin 12s linear infinite;
+    border: none;
+}
+
+.node-earth .satellite {
+    --sat-dist: 35px;
+    animation: orbit-anim 8s linear infinite;
+}
+
+.node-mars {
+    width: 26px;
+    height: 26px;
+    --planet-color: #DD4F31;
+}
+
+.node-mars .planet-system {
+    transform: rotate(-25deg);
+}
+
+.node-mars .planet-body {
+    width: 100%;
+    height: 100%;
+}
+
+.o-phobos {
+    width: 40px;
+    height: 40px;
+    animation: spin 4s linear infinite;
+    border: none;
+}
+
+.s-phobos {
+    --sat-dist: 20px;
+    animation: orbit-anim 3s linear infinite;
+}
+
+.o-deimos {
+    width: 56px;
+    height: 56px;
+    animation: spin 7s linear infinite;
+    border: none;
+}
+
+.s-deimos {
+    --sat-dist: 28px;
+    animation: orbit-anim 6s linear infinite;
+}
+
+.node-jupiter {
+    width: 96px;
+    height: 96px;
+    --planet-color: #c78848;
+}
+
+.node-jupiter .planet-system {
+    transform: rotate(-3deg);
+}
+
+.node-jupiter .planet-body {
+    width: 100%;
+    height: 100%;
+}
+
+.node-jupiter .planet-body::after {
+    display: none;
+}
+
+.node-jupiter .satellite-orbit {
+    width: 160px;
+    height: 40px;
+    border: none;
+}
+
+.node-jupiter .satellite {
+    --sat-dist: 80px;
+    animation: orbit-anim 18s linear infinite;
+}
+
+.node-saturn {
+    width: 84px;
+    height: 84px;
+    --planet-color: #e0d0a0;
+}
+
+.node-saturn .planet-system {
+    transform: rotate(-26.7deg);
+}
+
+.node-saturn .planet-body {
+    width: 100%;
+    height: 100%;
+}
+
+.node-saturn .ring-back, .node-saturn .ring-front {
+    width: 150px;
+    height: 42px;
+    border-width: 5px;
+    box-shadow: 0 0 0 4px rgba(224, 208, 160, 0.1);
+}
+
+.node-saturn .ring-back {
+    opacity: 0.6;
+}
+
+.node-saturn .satellite-orbit {
+    width: 170px;
+    height: 170px;
+    border: none;
+}
+
+.node-saturn .satellite {
+    --sat-dist: 85px;
+    width: 3px;
+    height: 3px;
+    background: var(--const-orange);
+    animation: orbit-anim 25s linear infinite;
+}
+
+.node-uranus {
+    width: 56px;
+    height: 56px;
+    --planet-color: #7fffd4;
+}
+
+.node-uranus .planet-system {
+    transform: rotate(-97.8deg);
+}
+
+.node-uranus .planet-body {
+    width: 100%;
+    height: 100%;
+}
+
+.node-uranus .ring-back, .node-uranus .ring-front {
+    width: 110px;
+    height: 24px;
+    border-width: 2px;
+}
+
+.node-uranus .satellite-orbit {
+    width: 120px;
+    height: 120px;
+    border: none;
+}
+
+.node-uranus .satellite {
+    --sat-dist: 60px;
+    animation: orbit-anim 20s linear infinite reverse;
+}
+
+.node-neptune {
+    width: 54px;
+    height: 54px;
+    --planet-color: #3e54e8;
+}
+
+.node-neptune .planet-system {
+    transform: rotate(-28deg);
+}
+
+.node-neptune .planet-body {
+    width: 100%;
+    height: 100%;
+}
+
+.node-neptune .ring-back {
+    width: 100px;
+    height: 20px;
+    border-width: 1px;
+    opacity: 0.2;
+}
+
+.node-neptune .ring-front {
+    width: 100px;
+    height: 20px;
+    border-width: 1px;
+    opacity: 0.4;
+}
+
+.o-triton {
+    width: 130px;
+    height: 130px;
+    border: none;
+}
+
+.s-triton {
+    --sat-dist: 65px;
+    animation: orbit-anim 22s linear infinite reverse;
+}

@@ -1,0 +1,22 @@
+# 操作系统生成的文件
+.DS_Store
+Thumbs.db
+
+# IDE 和编辑器文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Visual Studio 相关
+.vs/                  # Visual Studio 2017+ 隐藏的解决方案设置目录
+*.VC.db               # Visual Studio 数据库文件
+*.VC.opendb           # Visual Studio 数据库文件
+*.vcxproj.user        # Visual Studio 用户特定的项目设置
+*.vcxproj.filters     # Visual Studio 项目过滤器文件
+*.sln.docstates       # Visual Studio 解决方案文档状态
+*.suo                 # Visual Studio 解决方案用户选项
+*.user                # Visual Studio 旧版用户选项
+*.aps                 # Visual Studio 资源文件
+*.bsc                 # Visual Studio 浏览信息文件
+*.sbr                 # Visual Studio 源代码浏览器信息
