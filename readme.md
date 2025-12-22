@@ -62,6 +62,6 @@
 
 ## 📄 License
 
-GPL-3.0 License. Feel free to explore the cosmos.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 > *Per Aspera Ad Astra.*
