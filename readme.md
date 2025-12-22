@@ -7,7 +7,7 @@
 ![Three.js](https://img.shields.io/badge/Core-Three.js-black?style=flat-square&logo=three.js)
 ![Procedural](https://img.shields.io/badge/Assets-Procedural_Generation-orange?style=flat-square&logo=codio)
 ![Textureless](https://img.shields.io/badge/Resources-Textureless-lightgrey?style=flat-square)
-![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
 **NASA-Punk : Observatory** 是一个基于 WebGL 的交互式天体观测终端。它采用 **NASA-Punk（NASA 朋克）** 美学风格——一种由游戏《Starfield》提出的视觉语言。
 
