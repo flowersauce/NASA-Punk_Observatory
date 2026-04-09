@@ -3,60 +3,6 @@
    v5.0 - Final Unified Master
    ========================================= */
 
-/* --- 1. 字体加载 --- */
-@font-face {
-    font-family: 'Jura';
-    src: url('../fonts/Jura-Bold.ttf') format('truetype');
-    font-weight: 700;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'Jura';
-    src: url('../fonts/Jura-Medium.ttf') format('truetype');
-    font-weight: 500;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'Jura';
-    src: url('../fonts/Jura-Light.ttf') format('truetype');
-    font-weight: 300;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'Roboto Mono';
-    src: url('../fonts/RobotoMono-Regular.ttf') format('truetype');
-    font-weight: 400;
-    font-style: normal;
-}
-
-:root {
-    --bg-navy: #0e141f;
-    --line-color: #3b4e6b;
-
-    /* Starfield Official Colors */
-    --const-red: #c82337;
-    --const-orange: #e06236;
-    --const-yellow: #d7ab61;
-    --const-blue: #2f4c79;
-
-    --text-white: #e8e8e8;
-    --text-dim: #6d7d8c;
-    --sun-glow: #fff5cc;
-}
-
-body {
-    margin: 0;
-    overflow: hidden;
-    background-color: var(--bg-navy);
-    font-family: 'Jura', 'Segoe UI', sans-serif;
-    color: var(--text-white);
-    cursor: crosshair;
-    user-select: none;
-}
-
 /* --- 2. 品牌彩条 & 背景 --- */
 .brand-stripe {
     position: absolute;
@@ -186,7 +132,6 @@ h1 {
     font-weight: 700;
 }
 
-/* 终端文字输出 */
 .terminal-output {
     display: block;
     min-height: 80px;
@@ -217,7 +162,6 @@ h1 {
     pointer-events: auto !important;
     cursor: pointer;
     z-index: 50;
-    /* 无缩放特效，仅保留基础状态 */
 }
 
 .sun-marker {
@@ -260,7 +204,6 @@ h1 {
     border-radius: 50%;
 }
 
-/* 雷达中的行星样式 (小图标) */
 .o-mercury {
     width: 30px;
     height: 30px;
@@ -398,7 +341,6 @@ h1 {
     left: calc(50% - 120px);
 }
 
-/* 锁定框 */
 .target-reticle {
     position: absolute;
     z-index: 20;
@@ -447,7 +389,6 @@ h1 {
     border-width: 0 1px 1px 0;
 }
 
-/* 扫描仪 */
 .scanner-trail {
     position: absolute;
     top: 0;
@@ -505,7 +446,6 @@ h1 {
     color: var(--text-white);
 }
 
-/* 动画定义 */
 @keyframes rotateOrbit {
     100% {
         transform: rotate(360deg);
@@ -530,12 +470,10 @@ h1 {
     }
 }
 
-
 /* =========================================
    Universal Slider Controls (Zoom & Vertical)
    ========================================= */
 
-/* 1. 水平缩放条 (主页/导航页) */
 .zoom-controls {
     position: fixed;
     top: 82.5%;
@@ -564,7 +502,6 @@ h1 {
     font-weight: bold;
 }
 
-/* 2. 垂直缩放条 (星球详情页) */
 .vertical-controls {
     position: fixed;
     right: 112px;
@@ -579,7 +516,6 @@ h1 {
     pointer-events: auto;
 }
 
-/* 复用 v-label 作为垂直标签 */
 .v-label {
     position: absolute;
     bottom: -25px;
@@ -592,7 +528,6 @@ h1 {
     width: 100%;
 }
 
-/* --- 滑块通用复位 --- */
 input[type=range] {
     -webkit-appearance: none;
     width: 100%;
@@ -603,7 +538,6 @@ input[type=range]:focus {
     outline: none;
 }
 
-/* 滑轨 (通用) */
 input[type=range]::-webkit-slider-runnable-track {
     width: 100%;
     height: 1px;
@@ -612,14 +546,12 @@ input[type=range]::-webkit-slider-runnable-track {
     border: none;
 }
 
-/* 滑块头 (通用) */
 input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
     height: 14px;
     width: 14px;
     background: var(--bg-navy);
     border: 1px solid var(--const-orange);
-    /* (1 - 14) / 2 = -6.5px */
     margin-top: -6.5px;
     box-shadow: 0 0 10px rgba(224, 98, 54, 0.4);
     transition: background 0.2s, transform 0.1s;
@@ -635,9 +567,6 @@ input[type=range]::-webkit-slider-thumb:hover {
     background: var(--const-orange);
 }
 
-/* --- 刻度系统 (Ticks) --- */
-
-/* 默认刻度 (竖线，用于水平滑块) */
 .tick {
     width: 1px;
     height: 6px;
@@ -651,22 +580,16 @@ input[type=range]::-webkit-slider-thumb:hover {
     opacity: 0.3;
 }
 
-/* 水平刻度容器 */
 .zoom-ticks {
     display: flex;
     justify-content: space-between;
     width: 100%;
-
-    /* [核心修改] 增加间距：6px -> 12px */
-    /* 这让刻度线离滑块更远一点，不再拥挤，且与上方Label的间距对称 */
     margin-top: 12px;
-
-    padding: 0 6px; /* 保持左右余量以对齐滑块中心 */
+    padding: 0 6px;
     box-sizing: border-box;
     pointer-events: none;
 }
 
-/* 垂直刻度容器 */
 .v-slider-track {
     position: relative;
     width: 100%;
@@ -679,14 +602,13 @@ input[type=range]::-webkit-slider-thumb:hover {
     top: 0;
     height: 100%;
     display: flex;
-    flex-direction: column-reverse; /* 0在下 */
+    flex-direction: column-reverse;
     justify-content: space-between;
-    padding: 6px 0; /* 上下各留6px余量 */
+    padding: 6px 0;
     box-sizing: border-box;
     pointer-events: none;
 }
 
-/* 垂直刻度覆写 (横线) */
 .vertical-controls .tick {
     width: 6px;
     height: 1px;
@@ -697,7 +619,6 @@ input[type=range]::-webkit-slider-thumb:hover {
     height: 1px;
 }
 
-/* --- 垂直滑块特殊修正 --- */
 input[type=range].vertical {
     width: 180px;
     height: 20px;
@@ -713,15 +634,13 @@ input[type=range].vertical {
 
 input[type=range].vertical::-webkit-slider-thumb {
     cursor: row-resize;
-    margin-top: -6.5px; /* 保持与水平一致 */
+    margin-top: -6.5px;
 }
-
 
 /* =========================================
    Navigation & System Select Specifics
    ========================================= */
 
-/* 导航舞台 */
 .nav-stage {
     position: absolute;
     top: 0;
@@ -756,7 +675,6 @@ input[type=range].vertical::-webkit-slider-thumb {
     transform: translateY(-50%);
 }
 
-/* 星球节点 */
 .planet-node {
     position: relative;
     z-index: 10;
@@ -786,7 +704,6 @@ input[type=range].vertical::-webkit-slider-thumb {
     height: 100%;
 }
 
-/* 实体星球 (遮挡中线) */
 .planet-body {
     border-radius: 50%;
     background-color: var(--bg-navy);
@@ -805,7 +722,6 @@ input[type=range].vertical::-webkit-slider-thumb {
     transform: scale(1.1);
 }
 
-/* 光环与卫星 */
 .ring-back {
     position: absolute;
     top: 50%;
@@ -836,8 +752,6 @@ input[type=range].vertical::-webkit-slider-thumb {
     border-width: 1px;
     opacity: 0.2;
 }
-
-/* 修正语法 */
 
 .satellite-orbit {
     position: absolute;
@@ -882,7 +796,6 @@ input[type=range].vertical::-webkit-slider-thumb {
     }
 }
 
-/* 悬浮标签 */
 .node-label {
     position: absolute;
     top: -70px;
@@ -904,7 +817,6 @@ input[type=range].vertical::-webkit-slider-thumb {
     transform: translateY(0);
 }
 
-/* 星球独立配置 (V21.3) */
 .node-sun {
     width: 160px;
     height: 160px;

@@ -1,0 +1,21 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: var(--bg-navy);
+    font-family: 'Jura', 'Segoe UI', sans-serif;
+    color: var(--text-white);
+    cursor: crosshair;
+    user-select: none;
+}

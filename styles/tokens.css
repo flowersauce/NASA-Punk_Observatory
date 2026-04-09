@@ -1,0 +1,39 @@
+@font-face {
+    font-family: 'Jura';
+    src: url('../fonts/Jura-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Jura';
+    src: url('../fonts/Jura-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Jura';
+    src: url('../fonts/Jura-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Roboto Mono';
+    src: url('../fonts/RobotoMono-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+:root {
+    --bg-navy: #0e141f;
+    --line-color: #3b4e6b;
+    --const-red: #c82337;
+    --const-orange: #e06236;
+    --const-yellow: #d7ab61;
+    --const-blue: #2f4c79;
+    --text-white: #e8e8e8;
+    --text-dim: #6d7d8c;
+    --sun-glow: #fff5cc;
+}
