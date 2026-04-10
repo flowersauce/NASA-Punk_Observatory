@@ -49,6 +49,7 @@
     from {
         transform: skewX(-15deg) translateX(-100%);
     }
+
     to {
         transform: skewX(-15deg) translateX(0%);
     }
@@ -58,6 +59,7 @@
     from {
         transform: skewX(-15deg) translateX(0%);
     }
+
     to {
         transform: skewX(-15deg) translateX(100%);
     }

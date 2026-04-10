@@ -13,9 +13,12 @@
 
 ## Overview
 
-`NASA-Punk: Observatory` is an interactive solar-system observatory built with WebGL. The project follows a NASA-Punk visual direction inspired by the aerospace UI language popularized by *Starfield*, with a strong emphasis on instrument panels, terminal layouts, and procedural rendering.
+`NASA-Punk: Observatory` is an interactive solar-system observatory built with WebGL. The project follows a NASA-Punk
+visual direction inspired by the aerospace UI language popularized by *Starfield*, with a strong emphasis on instrument
+panels, terminal layouts, and procedural rendering.
 
-The project is intentionally `texture-less`. Planet surfaces, clouds, atmospheres, topographic backgrounds, and parts of the UI decoration are generated procedurally at runtime, which keeps the project lightweight and fully offline-capable.
+The project is intentionally `texture-less`. Planet surfaces, clouds, atmospheres, topographic backgrounds, and parts of
+the UI decoration are generated procedurally at runtime, which keeps the project lightweight and fully offline-capable.
 
 ## Highlights
 
@@ -48,7 +51,8 @@ You can also open any planet page directly, such as `earth.html` or `saturn.html
 
 ## Code Structure
 
-This section is intended to help users, collaborators, and maintainers understand the main entry points and resource layout. It does not describe the internal refactor process.
+This section is intended to help users, collaborators, and maintainers understand the main entry points and resource
+layout. It does not describe the internal refactor process.
 
 ```text
 NASA-Punk_Observatory/

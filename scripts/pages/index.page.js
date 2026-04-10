@@ -1,23 +1,31 @@
-(function initSystemSelectPage() {
-    const SYSTEM_SELECT_CONFIG = window.SYSTEM_SELECT_CONFIG || {};
+(function initSystemSelectPage()
+{
+    const SYSTEM_SELECT_CONFIG      = window.SYSTEM_SELECT_CONFIG || {};
     const SYSTEM_SELECT_INTERACTION = SYSTEM_SELECT_CONFIG.interaction || {};
 
-    function typeText(target, text) {
-        if (!target) return;
-        if (target._typeTimer) {
+    function typeText(target, text)
+    {
+        if (!target)
+        {
+            return;
+        }
+        if (target._typeTimer)
+        {
             clearInterval(target._typeTimer);
         }
 
         target.textContent = '';
-        const cleanText = text
+        const cleanText    = text
             .split('\n')
             .map((line) => line.trim())
             .filter((line) => line.length > 0)
             .join('\n');
 
-        let index = 0;
-        target._typeTimer = setInterval(() => {
-            if (index < cleanText.length) {
+        let index         = 0;
+        target._typeTimer = setInterval(() =>
+        {
+            if (index < cleanText.length)
+            {
                 target.textContent += cleanText.charAt(index);
                 index += 1;
                 return;
@@ -29,34 +37,39 @@
         }, 10);
     }
 
-    function initSystemSelectInteractions() {
-        const axisGroup = document.getElementById('axis-group');
-        const slider = document.getElementById('zoom-slider');
-        const scaleVal = document.getElementById('scale-val');
+    function initSystemSelectInteractions()
+    {
+        const axisGroup       = document.getElementById('axis-group');
+        const slider          = document.getElementById('zoom-slider');
+        const scaleVal        = document.getElementById('scale-val');
         const terminalContent = document.getElementById('terminal-content');
-        const nodes = document.querySelectorAll('.planet-node');
+        const nodes           = document.querySelectorAll('.planet-node');
 
-        if (!axisGroup || !slider || !scaleVal || !terminalContent || nodes.length === 0) {
+        if (!axisGroup || !slider || !scaleVal || !terminalContent || nodes.length === 0)
+        {
             return;
         }
 
         const planetsTotalWidthPx = SYSTEM_SELECT_INTERACTION.planetsTotalWidthPx || 482;
-        const gapsCount = SYSTEM_SELECT_INTERACTION.gapsCount || 8;
-        const targetWidthRatio = SYSTEM_SELECT_INTERACTION.targetWidthRatio || 0.70;
-        const minimumGapPx = SYSTEM_SELECT_INTERACTION.minimumGapPx || 20;
-        let currentBaseGapPx = 0;
+        const gapsCount           = SYSTEM_SELECT_INTERACTION.gapsCount || 8;
+        const targetWidthRatio    = SYSTEM_SELECT_INTERACTION.targetWidthRatio || 0.70;
+        const minimumGapPx        = SYSTEM_SELECT_INTERACTION.minimumGapPx || 20;
+        let currentBaseGapPx      = 0;
 
-        function applyZoom(sliderValue) {
-            const factor = 0.5 * Math.pow(4, sliderValue / 100);
-            const finalGap = currentBaseGapPx * factor;
+        function applyZoom(sliderValue)
+        {
+            const factor        = 0.5 * Math.pow(4, sliderValue / 100);
+            const finalGap      = currentBaseGapPx * factor;
             axisGroup.style.gap = `${finalGap}px`;
-            scaleVal.innerText = `${Math.round(factor * 100)}%`;
+            scaleVal.innerText  = `${Math.round(factor * 100)}%`;
         }
 
-        function calculateBaseGap() {
-            const targetTotalWidth = window.innerWidth * targetWidthRatio;
+        function calculateBaseGap()
+        {
+            const targetTotalWidth    = window.innerWidth * targetWidthRatio;
             let availableSpaceForGaps = targetTotalWidth - planetsTotalWidthPx;
-            if (availableSpaceForGaps < gapsCount * minimumGapPx) {
+            if (availableSpaceForGaps < gapsCount * minimumGapPx)
+            {
                 availableSpaceForGaps = gapsCount * minimumGapPx;
             }
 
@@ -64,31 +77,43 @@
             applyZoom(slider.value);
         }
 
-        initPrecisionSlider(slider, (value) => {
+        initPrecisionSlider(slider, (value) =>
+        {
             applyZoom(value);
         });
 
-        nodes.forEach((node) => {
-            node.addEventListener('mouseenter', () => {
+        nodes.forEach((node) =>
+        {
+            node.addEventListener('mouseenter', () =>
+            {
                 const dataDiv = node.querySelector('.node-data');
-                if (dataDiv) {
+                if (dataDiv)
+                {
                     typeText(terminalContent, dataDiv.textContent);
                 }
             });
 
-            node.addEventListener('click', () => {
+            node.addEventListener('click', () =>
+            {
                 const link = node.dataset.link;
-                if (!link) return;
+                if (!link)
+                {
+                    return;
+                }
 
-                if (typeof TransitionManager !== 'undefined') {
+                if (typeof TransitionManager !== 'undefined')
+                {
                     TransitionManager.navigate(link);
-                } else {
+                }
+                else
+                {
                     window.location.href = link;
                 }
             });
         });
 
-        setTimeout(() => {
+        setTimeout(() =>
+        {
             typeText(
                 terminalContent,
                 SYSTEM_SELECT_INTERACTION.initialTerminalText || '> SYSTEM READY...\n> SELECT TARGET\n> STANDBY...'
@@ -98,24 +123,28 @@
         return calculateBaseGap;
     }
 
-    if (typeof renderSystemSelectUI === 'function') {
+    if (typeof renderSystemSelectUI === 'function')
+    {
         renderSystemSelectUI();
     }
 
     const topoBackground = createTopoBackground({
-        canvasId: 'topo-canvas',
+        canvasId   : 'topo-canvas',
         noiseOffset: 100
     });
 
     const recalculateLayout = initSystemSelectInteractions();
-    window.addEventListener('resize', () => {
+    window.addEventListener('resize', () =>
+    {
         topoBackground.resize();
-        if (recalculateLayout) {
+        if (recalculateLayout)
+        {
             recalculateLayout();
         }
     });
 
-    if (recalculateLayout) {
+    if (recalculateLayout)
+    {
         recalculateLayout();
     }
 })();

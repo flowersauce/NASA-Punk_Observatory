@@ -7,7 +7,8 @@ This note focuses on the current planet runtime layer:
 - `scripts/planets/*.js`
 - historical legacy `js/*.js` planet scripts
 
-The goal is to identify safe extraction opportunities without changing the visual or interaction result established by the latest committed version.
+The goal is to identify safe extraction opportunities without changing the visual or interaction result established by
+the latest committed version.
 
 ## Current state
 
@@ -66,7 +67,8 @@ Risk level:
 
 Recommended method:
 
-1. Compare each legacy file's `drawTopo()` customizations against `createTopoBackground(...)` options already passed in that file.
+1. Compare each legacy file's `drawTopo()` customizations against `createTopoBackground(...)` options already passed in
+   that file.
 2. Only remove the duplicated local functions after confirming the shared call expresses the same tint/offset.
 3. Refactor one planet at a time and verify no background drift.
 
@@ -159,4 +161,5 @@ A runtime refactor is safe when:
 - The background tint/noise behavior is unchanged.
 - Camera zoom and drag behavior remain unchanged.
 - Telemetry updates remain attached to the same target group with the same sign behavior.
-- The legacy file becomes shorter because dead duplicate infrastructure was removed, not because planet-specific logic was hidden behind an unstable abstraction.
+- The legacy file becomes shorter because dead duplicate infrastructure was removed, not because planet-specific logic
+  was hidden behind an unstable abstraction.

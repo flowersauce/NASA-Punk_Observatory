@@ -791,6 +791,7 @@ input[type=range].vertical::-webkit-slider-thumb {
     from {
         transform: rotate(0deg) translateX(var(--sat-dist)) rotate(0deg);
     }
+
     to {
         transform: rotate(360deg) translateX(var(--sat-dist)) rotate(-360deg);
     }
@@ -980,7 +981,8 @@ input[type=range].vertical::-webkit-slider-thumb {
     height: 100%;
 }
 
-.node-saturn .ring-back, .node-saturn .ring-front {
+.node-saturn .ring-back,
+.node-saturn .ring-front {
     width: 150px;
     height: 42px;
     border-width: 5px;
@@ -1020,7 +1022,8 @@ input[type=range].vertical::-webkit-slider-thumb {
     height: 100%;
 }
 
-.node-uranus .ring-back, .node-uranus .ring-front {
+.node-uranus .ring-back,
+.node-uranus .ring-front {
     width: 110px;
     height: 24px;
     border-width: 2px;

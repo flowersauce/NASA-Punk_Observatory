@@ -4,7 +4,7 @@
 
 // --- PART 1: 基础观测背景 ---
 const sharedTopoBackground = createTopoBackground({
-    canvasId: 'topo-canvas',
+    canvasId   : 'topo-canvas',
     noiseOffset: 800
 });
 sharedTopoBackground.resize();
@@ -14,7 +14,7 @@ sharedTopoBackground.resize();
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-let currentZoom   = 38;
+let currentZoom    = 38;
 const INITIAL_ZOOM = 38;
 
 camera.position.z = currentZoom;

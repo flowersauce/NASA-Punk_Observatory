@@ -4,7 +4,7 @@
 
 // --- PART 1: 基础观测背景 (保持不变) ---
 const sharedTopoBackground = createTopoBackground({
-    canvasId: 'topo-canvas',
+    canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
 sharedTopoBackground.resize();
@@ -53,16 +53,17 @@ let cloudPoints;
 const coreRadius = 5.0;
 
 // --- A. 地表点云 (Inner Surface: Magma Chaos) ---
-function createVenusSurface() {
+function createVenusSurface()
+{
     const surfaceParticles = 40000;
     const surfacePos       = [];
     const surfaceColors    = [];
     const noiseGen         = new SimplexNoise('venus-magma-chaos-rock');
 
     // [NEW PALETTE] 模拟岩浆的高对比度色板
-    const colBase  = new THREE.Color('#8b1a1a'); // 深岩浆红
-    const colHigh  = new THREE.Color('#d9531e'); // 亮熔岩橙
-    const colPeak  = new THREE.Color('#ffe0a0'); // 极热点黄
+    const colBase = new THREE.Color('#8b1a1a'); // 深岩浆红
+    const colHigh = new THREE.Color('#d9531e'); // 亮熔岩橙
+    const colPeak = new THREE.Color('#ffe0a0'); // 极热点黄
 
     for (let i = 0; i < surfaceParticles; i++)
     {
@@ -89,12 +90,15 @@ function createVenusSurface() {
         surfacePos.push(x, y, z);
 
         // 基于噪波值进行高对比度着色
-        let c = new THREE.Color();
+        let c   = new THREE.Color();
         let val = (nChaos + 1) / 2;
 
-        if (val < 0.5) {
+        if (val < 0.5)
+        {
             c.copy(colBase).lerp(colHigh, val * 2.0);
-        } else {
+        }
+        else
+        {
             c.copy(colHigh).lerp(colPeak, (val - 0.5) * 2.0);
         }
 
@@ -107,27 +111,29 @@ function createVenusSurface() {
     geo.setAttribute('color', new THREE.Float32BufferAttribute(surfaceColors, 3));
 
     const mat = new THREE.PointsMaterial({
-        size: 0.055,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.95,
+        size           : 0.055,
+        vertexColors   : true,
+        transparent    : true,
+        opacity        : 0.95,
         sizeAttenuation: true
     });
     venusSurfaceGroup.add(new THREE.Points(geo, mat));
 }
+
 createVenusSurface();
 
 
 // --- B. 大气点云 (Outer Atmosphere: Density Reduced) ---
 
-function createVenusClouds() {
+function createVenusClouds()
+{
     // [FIX 2] 粒子数量减半
     const cloudParticles = 45000;
     const cloudPos       = [];
     const cloudColors    = [];
     const cloudGen       = new SimplexNoise('venus-atmosphere-sulphur');
 
-    const colBase   = new THREE.Color('#ffae20');
+    const colBase = new THREE.Color('#ffae20');
 
     for (let i = 0; i < cloudParticles; i++)
     {
@@ -153,11 +159,11 @@ function createVenusClouds() {
     geo.setAttribute('color', new THREE.Float32BufferAttribute(cloudColors, 3));
 
     const mat = new THREE.PointsMaterial({
-        color: 0xffffff,
-        size: 0.06,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.2,
+        color          : 0xffffff,
+        size           : 0.06,
+        vertexColors   : true,
+        transparent    : true,
+        opacity        : 0.2,
         sizeAttenuation: true
     });
 
@@ -203,14 +209,15 @@ function animate()
     cloudGroup.rotation.y -= 0.0015;
 
     // 3. 云层颜色动画 (仅通过颜色/亮度变化模拟流动)
-    const time = Date.now() * 0.00005;
-    const colors = cloudPoints.geometry.attributes.color.array;
+    const time      = Date.now() * 0.00005;
+    const colors    = cloudPoints.geometry.attributes.color.array;
     const positions = cloudPoints.geometry.attributes.position.array;
-    const noiseGen = new SimplexNoise('venus-atmosphere-flow');
+    const noiseGen  = new SimplexNoise('venus-atmosphere-flow');
 
     const colBase = new THREE.Color('#ffae20');
 
-    for (let i = 0; i < positions.length / 3; i++) {
+    for (let i = 0; i < positions.length / 3; i++)
+    {
         let x = positions[i * 3];
         let y = positions[i * 3 + 1];
         let z = positions[i * 3 + 2];

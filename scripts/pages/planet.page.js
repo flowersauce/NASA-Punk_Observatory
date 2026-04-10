@@ -1,5 +1,9 @@
-(function initPlanetPage() {
+(function initPlanetPage()
+{
     const planetName = document.body.dataset.planet;
-    if (!planetName) return;
+    if (!planetName)
+    {
+        return;
+    }
     renderPlanetUI(planetName);
 })();

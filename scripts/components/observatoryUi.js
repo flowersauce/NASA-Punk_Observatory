@@ -1,5 +1,7 @@
-(function initObservatoryUi(global) {
-    function buildTickMarkup() {
+(function initObservatoryUi(global)
+{
+    function buildTickMarkup()
+    {
         return `
             <div class="tick"></div>
             <div class="tick-sub"></div>
@@ -15,8 +17,9 @@
         `;
     }
 
-    function buildRightDock(config) {
-        const rows = (config.rows || []).map((line) => `<div class="data-row">${line}</div>`).join('');
+    function buildRightDock(config)
+    {
+        const rows      = (config.rows || []).map((line) => `<div class="data-row">${line}</div>`).join('');
         const footerRow = config.footerRow
             ? `<div class="data-row">${config.footerRow}</div>`
             : '';
@@ -33,11 +36,12 @@
         </div>`;
     }
 
-    function buildHorizontalZoomControl(config) {
-        const sliderId = config && config.sliderId ? config.sliderId : 'zoom-slider';
+    function buildHorizontalZoomControl(config)
+    {
+        const sliderId  = config && config.sliderId ? config.sliderId : 'zoom-slider';
         const displayId = config && config.displayId ? config.displayId : 'scale-val';
-        const label = config && config.label ? config.label : 'FOV_SCALE';
-        const value = config && config.value ? config.value : '100%';
+        const label     = config && config.label ? config.label : 'FOV_SCALE';
+        const value     = config && config.value ? config.value : '100%';
 
         return `<div class="zoom-controls">
             <div class="zoom-label">${label} // <span id="${displayId}" class="zoom-value-display">${value}</span></div>
@@ -46,9 +50,10 @@
         </div>`;
     }
 
-    function buildVerticalZoomControl(config) {
+    function buildVerticalZoomControl(config)
+    {
         const sliderId = config && config.sliderId ? config.sliderId : 'cam-zoom-slider';
-        const label = config && config.label ? config.label : 'OPTICS';
+        const label    = config && config.label ? config.label : 'OPTICS';
 
         return `<div class="vertical-controls">
             <div class="v-slider-track">
@@ -60,8 +65,8 @@
     }
 
     global.ObservatoryUI = {
-        buildRightDock: buildRightDock,
+        buildRightDock            : buildRightDock,
         buildHorizontalZoomControl: buildHorizontalZoomControl,
-        buildVerticalZoomControl: buildVerticalZoomControl
+        buildVerticalZoomControl  : buildVerticalZoomControl
     };
 })(window);

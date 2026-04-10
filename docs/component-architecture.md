@@ -4,9 +4,11 @@
 
 This refactor is governed by one hard constraint:
 
-- Do not change the visual result, DOM contract, or interaction behavior established by the latest committed version unless a task explicitly asks for a behavior change.
+- Do not change the visual result, DOM contract, or interaction behavior established by the latest committed version
+  unless a task explicitly asks for a behavior change.
 
-The purpose of this document is to define where code should live as the project moves from duplicated page scripts toward a reusable NASA-Punk UI kit.
+The purpose of this document is to define where code should live as the project moves from duplicated page scripts
+toward a reusable NASA-Punk UI kit.
 
 ## Non-regression rule
 

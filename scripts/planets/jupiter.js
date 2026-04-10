@@ -4,7 +4,7 @@
 
 // --- PART 1: 基础观测背景 ---
 const sharedTopoBackground = createTopoBackground({
-    canvasId: 'topo-canvas',
+    canvasId   : 'topo-canvas',
     noiseOffset: 800
 });
 sharedTopoBackground.resize();

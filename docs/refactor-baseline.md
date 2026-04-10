@@ -11,15 +11,15 @@
 ## Shared/repeated structures identified
 
 - Planet pages share the same shell:
-  - right dock
-  - vertical zoom slider
-  - system monitor block
-  - script loading order
+    - right dock
+    - vertical zoom slider
+    - system monitor block
+    - script loading order
 - Planet scripts repeat the same topography background renderer (canvas + stars + marching squares).
 - Minor per-planet differences:
-  - monitor highlight target
-  - topography noise seed offset / tint
-  - Three.js scene setup specifics
+    - monitor highlight target
+    - topography noise seed offset / tint
+    - Three.js scene setup specifics
 
 ## Old -> New structure mapping (phase 2 target)
 

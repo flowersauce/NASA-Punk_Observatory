@@ -24,10 +24,10 @@ This must not change the current visual result unless configuration explicitly r
 ## Built-in effects
 
 - `curtain`
-  - current default effect
-  - preserves the existing intro and exit behavior
+    - current default effect
+    - preserves the existing intro and exit behavior
 - `none`
-  - disables animation and navigates immediately
+    - disables animation and navigates immediately
 
 ## Optional global configuration
 
@@ -55,8 +55,13 @@ A transition effect plugin should provide:
 
 ```js
 {
-    init: function () {},
-    navigate: function (url) {}
+    init: function ()
+    {
+    }
+,
+    navigate: function (url)
+    {
+    }
 }
 ```
 

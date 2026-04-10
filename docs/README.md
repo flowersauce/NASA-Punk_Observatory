@@ -1,6 +1,7 @@
 # Documentation Index
 
-This directory contains maintenance-oriented documentation for the project. These files are intended for ongoing development, refactor work, and AI-assisted collaboration rather than general end users.
+This directory contains maintenance-oriented documentation for the project. These files are intended for ongoing
+development, refactor work, and AI-assisted collaboration rather than general end users.
 
 ## Available Documents
 
