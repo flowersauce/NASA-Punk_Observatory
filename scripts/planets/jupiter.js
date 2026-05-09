@@ -30,6 +30,29 @@ renderer.setSize(displaySize.width, displaySize.height);
 renderer.setPixelRatio(window.devicePixelRatio);
 canvasContainer.appendChild(renderer.domElement);
 
+function resizeScene()
+{
+    const nextDisplaySize = DisplayArea.getSize(canvasContainer);
+    camera.aspect         = nextDisplaySize.width / nextDisplaySize.height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nextDisplaySize.width, nextDisplaySize.height);
+}
+
+if (typeof ResizeObserver !== 'undefined')
+{
+    const displayResizeObserver = new ResizeObserver(() =>
+    {
+        resizeScene();
+    });
+    displayResizeObserver.observe(canvasContainer);
+}
+
+window.addEventListener('resize', () =>
+{
+    sharedTopoBackground.resize();
+    resizeScene();
+});
+
 // [CHANGED] ID 变更为 zoom-text-display 以匹配 earth.html 的逻辑
 const zoomDisplay = document.getElementById('zoom-text-display');
 const tgtLabel    = document.querySelector('.monitor-label.label-bottom');

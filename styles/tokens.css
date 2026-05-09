@@ -42,7 +42,16 @@
     --display-left-inset: 0px;
     --display-width: calc(100vw - var(--display-left-inset) - var(--display-right-inset));
     --display-height: calc(100vh - var(--display-top-inset) - var(--display-bottom-inset));
-    --segmented-colorbar-serif-size: 112px;
+    --display-ui-padding: 0px;
+    --system-monitor-body-size: 260px;
+    --system-monitor-label-overflow: 34px;
+    --system-monitor-shell-width: calc(var(--system-monitor-body-size) + var(--system-monitor-label-overflow) * 2);
+    --system-monitor-caption-line-height: 25px;
+    --vertical-control-body-height: 200px;
+    --vertical-control-label-offset: 25px;
     --segmented-colorbar-stripe-width: 12px;
     --segmented-colorbar-outer-gap: 40px;
+    --segmented-colorbar-serif-size: calc(var(--segmented-colorbar-stripe-width) + var(--segmented-colorbar-outer-gap));
+    --stacked-colorbar-stripe-width: var(--segmented-colorbar-stripe-width);
+    --stacked-colorbar-serif-size: calc(var(--stacked-colorbar-stripe-width) * 4);
 }

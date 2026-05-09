@@ -73,21 +73,48 @@ Display area variables:
 - `--display-left-inset`
 - `--display-width`
 - `--display-height`
+- `--display-ui-padding`
 
-Current built-in style:
+Current built-in styles:
 
 - `segmented-colorbar-right`
     - right-edge serif
     - preserves the historical segmented brand stripe visual
-    - reserves `--segmented-colorbar-serif-size`
+    - reserves `--segmented-colorbar-serif-size`, equal to stripe width plus outer edge gap
     - places the stripe itself at `--segmented-colorbar-outer-gap`
+- `segmented-colorbar-left`
+    - left-edge mirror of `segmented-colorbar-right`
+    - preserves the same top-to-bottom horizon color order
+- `stacked-colorbar-top`
+    - top-edge mirror of `stacked-colorbar-bottom`
+    - stacks four horizontal color bands, each matching `--segmented-colorbar-stripe-width`
+    - keeps the blue band on the outer viewport edge
+- `stacked-colorbar-bottom`
+    - bottom-edge serif
+    - uses the same project color tokens as the historical stripe
+    - stacks four horizontal color bands, each matching `--segmented-colorbar-stripe-width`
+    - keeps the blue band on the outer viewport edge
+- `stacked-colorbar-left`
+    - left-edge serif
+    - uses the same project color tokens as the historical stripe
+    - stacks four vertical color bands, each matching `--segmented-colorbar-stripe-width`
+    - keeps the blue band on the outer viewport edge
+- `stacked-colorbar-right`
+    - right-edge mirror of `stacked-colorbar-left`
+    - stacks four vertical color bands, each matching `--segmented-colorbar-stripe-width`
+    - keeps the blue band on the outer viewport edge
 
 Rules:
 
 - A concrete serif style owns one fixed edge.
 - Add another style for another edge instead of making one style change direction at runtime.
-- Main UI should align to display inset variables instead of hardcoded viewport offsets.
+- The active serif style reserves display space only on its own edge so the serif region and display region touch directly.
+- HUD placement should use equal `--display-ui-padding` as explicit offsets from the display region edges.
+- Do not rely on padding on `#ui-layer` or `#system-select-root` for absolutely positioned HUD elements.
+- Multi-part HUD controls should expose one outer shell for alignment and keep visual sub-elements inside that shell.
+- Main UI should align to display inset and display padding variables instead of hardcoded viewport offsets.
 - Runtime code should measure foreground render targets through `DisplayArea.getSize(...)`.
+- Colorbar serif colors represent the horizon palette. For stacked edge bars, the outer viewport edge is treated as the horizon side and should keep the blue band at the edge. For vertical segmented bars, top-to-bottom order should stay red, orange, yellow, blue.
 
 ### 2. Reusable component layer
 

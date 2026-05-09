@@ -21,6 +21,16 @@
         </div>`;
     }
 
+    function createStackedColorbarMarkup()
+    {
+        return `<div class="stacked-colorbar">
+            <div class="stacked-stripe s-1"></div>
+            <div class="stacked-stripe s-2"></div>
+            <div class="stacked-stripe s-3"></div>
+            <div class="stacked-stripe s-4"></div>
+        </div>`;
+    }
+
     function clearSerifs()
     {
         document.querySelectorAll('.serif-region').forEach((node) =>
@@ -37,10 +47,12 @@
         document.body.style.removeProperty('--display-right-inset');
         document.body.style.removeProperty('--display-bottom-inset');
         document.body.style.removeProperty('--display-left-inset');
+        document.body.style.removeProperty('--display-ui-padding');
     }
 
     function mountSerifRegion(style)
     {
+        const displayPadding = style.displayPadding || '0px';
         const region       = document.createElement('div');
         region.className   = `serif-region serif-region-${style.edge} ${style.className || ''}`.trim();
         region.dataset.edge = style.edge;
@@ -48,6 +60,7 @@
         document.body.appendChild(region);
         document.body.classList.add(`has-serif-${style.edge}`);
         document.body.style.setProperty(`--display-${style.edge}-inset`, style.size || '0px');
+        document.body.style.setProperty('--display-ui-padding', displayPadding);
     }
 
     function getActiveStyle()
@@ -66,10 +79,51 @@
     }
 
     registerStyle('segmented-colorbar-right', {
-        edge     : 'right',
-        size     : 'var(--segmented-colorbar-serif-size)',
-        className: 'serif-segmented-colorbar-right',
-        render   : createSegmentedColorbarMarkup
+        edge          : 'right',
+        size          : 'var(--segmented-colorbar-serif-size)',
+        displayPadding: 'var(--segmented-colorbar-outer-gap)',
+        className     : 'serif-segmented-colorbar-right',
+        render        : createSegmentedColorbarMarkup
+    });
+
+    registerStyle('segmented-colorbar-left', {
+        edge          : 'left',
+        size          : 'var(--segmented-colorbar-serif-size)',
+        displayPadding: 'var(--segmented-colorbar-outer-gap)',
+        className     : 'serif-segmented-colorbar-left',
+        render        : createSegmentedColorbarMarkup
+    });
+
+    registerStyle('stacked-colorbar-top', {
+        edge          : 'top',
+        size          : 'var(--stacked-colorbar-serif-size)',
+        displayPadding: 'var(--stacked-colorbar-serif-size)',
+        className     : 'serif-stacked-colorbar-top',
+        render        : createStackedColorbarMarkup
+    });
+
+    registerStyle('stacked-colorbar-bottom', {
+        edge          : 'bottom',
+        size          : 'var(--stacked-colorbar-serif-size)',
+        displayPadding: 'var(--stacked-colorbar-serif-size)',
+        className     : 'serif-stacked-colorbar-bottom',
+        render        : createStackedColorbarMarkup
+    });
+
+    registerStyle('stacked-colorbar-left', {
+        edge          : 'left',
+        size          : 'var(--stacked-colorbar-serif-size)',
+        displayPadding: 'var(--stacked-colorbar-serif-size)',
+        className     : 'serif-stacked-colorbar-left',
+        render        : createStackedColorbarMarkup
+    });
+
+    registerStyle('stacked-colorbar-right', {
+        edge          : 'right',
+        size          : 'var(--stacked-colorbar-serif-size)',
+        displayPadding: 'var(--stacked-colorbar-serif-size)',
+        className     : 'serif-stacked-colorbar-right',
+        render        : createStackedColorbarMarkup
     });
 
     const SerifManager = {

@@ -49,9 +49,61 @@
     box-shadow: -4px 0 15px rgba(0, 0, 0, 0.3);
 }
 
+.serif-segmented-colorbar-left .brand-stripe {
+    right: auto;
+    left: var(--segmented-colorbar-outer-gap);
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+}
+
 .stripe-seg {
     width: 100%;
     height: 25%;
+}
+
+.stacked-colorbar {
+    position: absolute;
+    inset: 0;
+    display: flex;
+}
+
+.serif-stacked-colorbar-bottom .stacked-colorbar {
+    flex-direction: column;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.serif-stacked-colorbar-top .stacked-colorbar {
+    flex-direction: column-reverse;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.serif-stacked-colorbar-left .stacked-colorbar {
+    flex-direction: row-reverse;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.serif-stacked-colorbar-right .stacked-colorbar {
+    flex-direction: row;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.stacked-stripe {
+    flex: 0 0 var(--stacked-colorbar-stripe-width);
+}
+
+.serif-stacked-colorbar-bottom .stacked-stripe {
+    width: 100%;
+}
+
+.serif-stacked-colorbar-top .stacked-stripe {
+    width: 100%;
+}
+
+.serif-stacked-colorbar-left .stacked-stripe {
+    height: 100%;
+}
+
+.serif-stacked-colorbar-right .stacked-stripe {
+    height: 100%;
 }
 
 .s-1 {
@@ -119,8 +171,8 @@
 /* --- 3. 右侧 UI Dock --- */
 .right-dock {
     position: absolute;
-    top: 60px;
-    right: 0;
+    top: var(--display-ui-padding);
+    right: var(--display-ui-padding);
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -201,16 +253,33 @@ h1 {
 /* --- 4. 星图雷达 (System Monitor) --- */
 .system-monitor-container {
     position: absolute;
-    left: 90px;
-    bottom: 90px;
-    width: 260px;
-    height: 260px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    left: var(--display-ui-padding);
+    bottom: var(--display-ui-padding);
+    width: var(--system-monitor-shell-width);
+    height: calc(var(--system-monitor-body-size) + var(--system-monitor-caption-line-height) * 2);
+    padding: 0;
     pointer-events: auto !important;
     cursor: pointer;
     z-index: 50;
+}
+
+.system-monitor-body {
+    position: absolute;
+    top: 0;
+    left: var(--system-monitor-label-overflow);
+    width: var(--system-monitor-body-size);
+    height: var(--system-monitor-body-size);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.system-monitor-caption {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: calc(var(--system-monitor-caption-line-height) * 2);
 }
 
 .sun-marker {
@@ -473,20 +542,23 @@ h1 {
     font-size: 10px;
     color: var(--text-dim);
     letter-spacing: 1px;
+    line-height: var(--system-monitor-caption-line-height);
 }
 
 .label-top {
-    top: -25px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 0;
+    left: 0;
+    width: 100%;
     color: var(--const-yellow);
+    text-align: center;
     white-space: nowrap;
 }
 
 .label-bottom {
-    bottom: -25px;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
     white-space: nowrap;
 }
 
@@ -525,9 +597,9 @@ h1 {
 
 .zoom-controls {
     position: absolute;
-    top: 82.5%;
+    bottom: var(--display-ui-padding);
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     width: 240px;
     display: flex;
     flex-direction: column;
@@ -553,21 +625,21 @@ h1 {
 
 .vertical-controls {
     position: absolute;
-    right: 0;
-    bottom: 90px;
+    right: var(--display-ui-padding);
+    bottom: var(--display-ui-padding);
     width: 40px;
-    height: 200px;
+    height: calc(var(--vertical-control-body-height) + var(--vertical-control-label-offset));
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     z-index: 100;
     pointer-events: auto;
 }
 
 .v-label {
     position: absolute;
-    bottom: -25px;
+    bottom: 0;
     font-family: 'Roboto Mono', monospace;
     font-size: 10px;
     color: var(--const-orange);
@@ -643,6 +715,7 @@ input[type=range]::-webkit-slider-thumb:hover {
     position: relative;
     width: 100%;
     height: 180px;
+    margin-top: 10px;
 }
 
 .v-ticks {

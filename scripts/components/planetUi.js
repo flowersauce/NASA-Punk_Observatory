@@ -49,7 +49,18 @@
 
     function buildSystemMonitor(config)
     {
-        return `<div class="system-monitor-container">${MONITOR_LABEL_TOP}${buildSunMarker(config)}${buildMonitorBody(config)}<div class="scanner-trail"></div><div class="scanner-line-sys"></div>${MONITOR_LABEL_BOTTOM}</div>`;
+        return `<div class="system-monitor-container">
+            <div class="system-monitor-body">
+                ${buildSunMarker(config)}
+                ${buildMonitorBody(config)}
+                <div class="scanner-trail"></div>
+                <div class="scanner-line-sys"></div>
+            </div>
+            <div class="system-monitor-caption">
+                ${MONITOR_LABEL_TOP}
+                ${MONITOR_LABEL_BOTTOM}
+            </div>
+        </div>`;
     }
 
     function buildPlanetLayout(config)
