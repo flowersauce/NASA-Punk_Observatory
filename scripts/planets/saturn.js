@@ -13,8 +13,10 @@ sharedTopoBackground.resize();
 // ==========================================
 // PART 2: Three.js 3D 场景 (SOL-VI SATURN SYSTEM)
 // ==========================================
-const scene  = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+const canvasContainer = document.getElementById('canvas-container');
+const displaySize     = DisplayArea.getSize(canvasContainer);
+const scene           = new THREE.Scene();
+const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
 let currentZoom    = 42;
 const INITIAL_ZOOM = 42;
@@ -24,9 +26,9 @@ const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha    : true
 });
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(displaySize.width, displaySize.height);
 renderer.setPixelRatio(window.devicePixelRatio);
-document.getElementById('canvas-container').appendChild(renderer.domElement);
+canvasContainer.appendChild(renderer.domElement);
 
 // [CHANGED] Update ID to match new HTML structure (keeps the slider working)
 const zoomDisplay = document.getElementById('zoom-text-display');

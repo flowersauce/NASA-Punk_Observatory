@@ -32,7 +32,9 @@ Files:
 - `styles/base.css`
 - `styles/utilities.css`
 - `styles/transition.css`
+- `scripts/core/display.js`
 - `scripts/core/interaction.js`
+- `scripts/core/serif.js`
 - `scripts/core/telemetry.js`
 - `scripts/core/transition.js`
 
@@ -41,8 +43,51 @@ Responsibility:
 - Cross-page primitives.
 - Design tokens, reset/base rules, utilities.
 - Shared behavior systems that do not own page-specific markup.
+- Optional page-edge serif system that reserves display-area space.
 
 These files should avoid page-specific copy and planet-specific content.
+
+### Foreground layout model
+
+The viewport is split into a full-screen background layer and a foreground layout layer.
+
+Background:
+
+- remains viewport-wide
+- includes the page background color and `#topo-canvas`
+
+Foreground:
+
+- is split into an optional serif region and the display region
+- all non-background, non-serif content belongs to the display region
+- current display roots are `#canvas-container`, `#ui-layer`, and `#system-select-root`
+
+A serif is a page-edge component that can reserve part of the viewport for framing or brand structure. The remaining
+area is the display region where page UI and WebGL content should align.
+
+Display area variables:
+
+- `--display-top-inset`
+- `--display-right-inset`
+- `--display-bottom-inset`
+- `--display-left-inset`
+- `--display-width`
+- `--display-height`
+
+Current built-in style:
+
+- `segmented-colorbar-right`
+    - right-edge serif
+    - preserves the historical segmented brand stripe visual
+    - reserves `--segmented-colorbar-serif-size`
+    - places the stripe itself at `--segmented-colorbar-outer-gap`
+
+Rules:
+
+- A concrete serif style owns one fixed edge.
+- Add another style for another edge instead of making one style change direction at runtime.
+- Main UI should align to display inset variables instead of hardcoded viewport offsets.
+- Runtime code should measure foreground render targets through `DisplayArea.getSize(...)`.
 
 ### 2. Reusable component layer
 

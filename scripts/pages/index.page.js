@@ -66,7 +66,8 @@
 
         function calculateBaseGap()
         {
-            const targetTotalWidth    = window.innerWidth * targetWidthRatio;
+            const displaySize         = DisplayArea.getSize(document.getElementById('system-select-root'));
+            const targetTotalWidth    = displaySize.width * targetWidthRatio;
             let availableSpaceForGaps = targetTotalWidth - planetsTotalWidthPx;
             if (availableSpaceForGaps < gapsCount * minimumGapPx)
             {

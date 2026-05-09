@@ -36,4 +36,13 @@
     --text-white: #e8e8e8;
     --text-dim: #6d7d8c;
     --sun-glow: #fff5cc;
+    --display-top-inset: 0px;
+    --display-right-inset: 0px;
+    --display-bottom-inset: 0px;
+    --display-left-inset: 0px;
+    --display-width: calc(100vw - var(--display-left-inset) - var(--display-right-inset));
+    --display-height: calc(100vh - var(--display-top-inset) - var(--display-bottom-inset));
+    --segmented-colorbar-serif-size: 112px;
+    --segmented-colorbar-stripe-width: 12px;
+    --segmented-colorbar-outer-gap: 40px;
 }

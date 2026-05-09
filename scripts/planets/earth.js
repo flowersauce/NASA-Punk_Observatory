@@ -13,17 +13,19 @@ sharedTopoBackground.resize();
 // ==========================================
 // PART 2: Three.js 3D 场景
 // ==========================================
-const scene  = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+const canvasContainer = document.getElementById('canvas-container');
+const displaySize     = DisplayArea.getSize(canvasContainer);
+const scene           = new THREE.Scene();
+const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
 // [CONFIG] 初始相机距离
 const INITIAL_ZOOM = 25;
 camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(displaySize.width, displaySize.height);
 renderer.setPixelRatio(window.devicePixelRatio);
-document.getElementById('canvas-container').appendChild(renderer.domElement);
+canvasContainer.appendChild(renderer.domElement);
 
 // UI 元素引用
 const tgtLabel = document.querySelector('.monitor-label.label-bottom');

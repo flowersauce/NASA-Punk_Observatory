@@ -13,8 +13,10 @@ sharedTopoBackground.resize();
 // ==========================================
 // PART 2: Three.js 场景初始化
 // ==========================================
-const scene  = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+const canvasContainer = document.getElementById('canvas-container');
+const displaySize     = DisplayArea.getSize(canvasContainer);
+const scene           = new THREE.Scene();
+const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
 let currentZoom    = 28;
 const INITIAL_ZOOM = 28;
@@ -24,9 +26,9 @@ const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha    : true
 });
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(displaySize.width, displaySize.height);
 renderer.setPixelRatio(window.devicePixelRatio);
-document.getElementById('canvas-container').appendChild(renderer.domElement);
+canvasContainer.appendChild(renderer.domElement);
 
 const zoomDisplay = document.getElementById('zoom-text-display');
 const tgtLabel    = document.querySelector('.monitor-label.label-bottom');

@@ -3,16 +3,49 @@
    v5.0 - Final Unified Master
    ========================================= */
 
-/* --- 2. 品牌彩条 & 背景 --- */
-.brand-stripe {
+/* --- 2. 衬线、显示屏 & 背景 --- */
+.serif-region {
     position: absolute;
-    right: 40px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.serif-region-top {
+    top: 0;
+    right: 0;
+    left: 0;
+    height: var(--display-top-inset);
+}
+
+.serif-region-right {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--display-right-inset);
+}
+
+.serif-region-bottom {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: var(--display-bottom-inset);
+}
+
+.serif-region-left {
     top: 0;
     bottom: 0;
-    width: 12px;
+    left: 0;
+    width: var(--display-left-inset);
+}
+
+.brand-stripe {
+    position: absolute;
+    right: var(--segmented-colorbar-outer-gap);
+    top: 0;
+    bottom: 0;
+    width: var(--segmented-colorbar-stripe-width);
     display: flex;
     flex-direction: column;
-    z-index: 10;
     box-shadow: -4px 0 15px rgba(0, 0, 0, 0.3);
 }
 
@@ -49,29 +82,45 @@
 
 #canvas-container {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    top: var(--display-top-inset);
+    right: var(--display-right-inset);
+    bottom: var(--display-bottom-inset);
+    left: var(--display-left-inset);
     z-index: 1;
+    overflow: hidden;
     filter: contrast(1.1) brightness(1.1);
+}
+
+#canvas-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 #ui-layer {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: var(--display-top-inset);
+    right: var(--display-right-inset);
+    bottom: var(--display-bottom-inset);
+    left: var(--display-left-inset);
     z-index: 5;
     pointer-events: none;
+}
+
+#system-select-root {
+    position: absolute;
+    top: var(--display-top-inset);
+    right: var(--display-right-inset);
+    bottom: var(--display-bottom-inset);
+    left: var(--display-left-inset);
+    z-index: 5;
 }
 
 /* --- 3. 右侧 UI Dock --- */
 .right-dock {
     position: absolute;
     top: 60px;
-    right: 112px;
+    right: 0;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -475,7 +524,7 @@ h1 {
    ========================================= */
 
 .zoom-controls {
-    position: fixed;
+    position: absolute;
     top: 82.5%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -503,8 +552,8 @@ h1 {
 }
 
 .vertical-controls {
-    position: fixed;
-    right: 112px;
+    position: absolute;
+    right: 0;
     bottom: 90px;
     width: 40px;
     height: 200px;
