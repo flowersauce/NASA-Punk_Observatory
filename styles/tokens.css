@@ -27,13 +27,14 @@
 }
 
 :root {
-    --bg-navy: #0e141f;
+    --bg-navy: #070b12;
+    --panel-navy: #101821;
     --line-color: #3b4e6b;
-    --const-red: #c82337;
+    --const-red: #c8434d;
     --const-orange: #e06236;
     --const-yellow: #d7ab61;
-    --const-blue: #2f4c79;
-    --text-white: #e8e8e8;
+    --const-blue: #5b789c;
+    --text-white: #e7e3da;
     --text-dim: #6d7d8c;
     --sun-glow: #fff5cc;
     --display-top-inset: 0px;

@@ -12,6 +12,8 @@
     z-index: 9999;
     pointer-events: none;
     display: flex;
+    background: var(--bg-navy);
+    opacity: 1;
     transform: skewX(-15deg) translateX(-100%);
 }
 
@@ -21,12 +23,16 @@
     transform: scaleX(1.1);
 }
 
+.start-covered {
+    transform: skewX(-15deg) translateX(0%);
+}
+
 .c1 {
-    background: var(--const-red);
+    background: var(--bg-navy);
 }
 
 .c2 {
-    background: var(--const-orange);
+    background: var(--const-blue);
 }
 
 .c3 {
@@ -34,7 +40,7 @@
 }
 
 .c4 {
-    background: var(--const-blue);
+    background: var(--const-orange);
 }
 
 .curtain-exit {
