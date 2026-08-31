@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -47,7 +46,6 @@ if (typeof ResizeObserver !== 'undefined')
 window.addEventListener('resize', () =>
 {
     sharedTopoBackground.resize();
-    resizeScene();
 });
 
 // UI 元素引用
@@ -79,18 +77,37 @@ group.add(moonSystemGroup);
 // --- A. 程序化地球 ---
 function createEarth()
 {
-    // [建议] 稍微增加粒子数以应对体积膨胀带来的稀疏感
-    const landParticles = 60000;
-    const landPos       = [];
-    const landColors    = [];
-    const noiseGen      = new SimplexNoise('seed-terra-firma-v2');
+    const planetName = 'earth';
+    const budget     = PLANET_PARTICLE_CONFIG[planetName].surface;
+    const tiers      = [budget, Math.floor(budget * 0.75), Math.floor(budget * 0.5), 250000];
+    const allocation = ParticleBuilder.allocate(tiers, (count) => ({
+        positions: new Float32Array(count * 3),
+        colors   : new Float32Array(count * 3)
+    }));
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(allocation.value.positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(allocation.value.colors, 3));
+    geometry.setDrawRange(0, 0);
 
     const colLandBase = new THREE.Color('#3e6b48');
     const colLandHigh = new THREE.Color('#9abf8a');
     const colOcean    = new THREE.Color('#1a2b4a');
     const colPeak     = new THREE.Color('#ffffff');
+    const noiseGen    = new SimplexNoise('seed-terra-firma-v2');
+    const surfaceColor = new THREE.Color();
 
-    for (let i = 0; i < landParticles; i++)
+    // [建议] 稍微调小 size，配合高密度粒子，看起来更像细腻的沙盘
+    const surfaceMaterial = new THREE.PointsMaterial({
+        size        : 0.045,
+        vertexColors: true,
+        transparent : true,
+        opacity     : 0.9
+    });
+    const points = new THREE.Points(geometry, surfaceMaterial);
+    earthSystemGroup.add(points);
+
+    function sampleSurfaceParticle(i, positions, colors)
     {
         const rBase = 5.0;
         const theta = Math.random() * Math.PI * 2;
@@ -105,6 +122,7 @@ function createEarth()
         n += noiseGen.noise3D(x * 0.15, y * 0.15, z * 0.15) * 1.2;
         n += noiseGen.noise3D(x * 0.6, y * 0.6, z * 0.6) * 0.25;
 
+        const offset = i * 3;
         if (n > 0.1)
         {
             // 1. 高度因子 (0.0 ~ 1.2 左右)
@@ -121,10 +139,12 @@ function createEarth()
 
             // 3. 缩放坐标
             const scale = rMod / rBase;
-            landPos.push(x * scale, y * scale, z * scale);
+            positions[offset]     = x * scale;
+            positions[offset + 1] = y * scale;
+            positions[offset + 2] = z * scale;
 
             // 颜色逻辑保持不变...
-            let c = new THREE.Color();
+            const c = surfaceColor;
             if (h < 0.5)
             {
                 c.copy(colLandBase).lerp(colLandHigh, h / 0.5);
@@ -133,22 +153,58 @@ function createEarth()
             {
                 c.copy(colLandHigh).lerp(colPeak, Math.min(1, (h - 0.5) * 2.0));
             }
-            landColors.push(c.r, c.g, c.b);
+            colors[offset]     = c.r;
+            colors[offset + 1] = c.g;
+            colors[offset + 2] = c.b;
+        }
+        else
+        {
+            positions[offset]     = x;
+            positions[offset + 1] = y;
+            positions[offset + 2] = z;
+            colors[offset]        = colOcean.r;
+            colors[offset + 1]    = colOcean.g;
+            colors[offset + 2]    = colOcean.b;
         }
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(landPos, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(landColors, 3));
-
-    // [建议] 稍微调小 size，配合高密度粒子，看起来更像细腻的沙盘
-    const mat = new THREE.PointsMaterial({
-        size        : 0.045,
-        vertexColors: true,
-        transparent : true,
-        opacity     : 0.9
+    ParticleBuilder.build({
+        total           : allocation.count,
+        readyCount      : Math.min(250000, allocation.count),
+        initialBatchSize: 10000,
+        writeBatch(start, end)
+        {
+            for (let i = start; i < end; i++)
+            {
+                sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
+            }
+            geometry.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geometry.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+        },
+        setDrawCount(count)
+        {
+            geometry.setDrawRange(0, count);
+        },
+        onReady()
+        {
+            renderer.render(scene, camera);
+            ParticleBuilder.markReady({page: planetName});
+        },
+        onProgress(percent)
+        {
+            document.getElementById('particle-build-progress').textContent = `${percent}%`;
+        },
+        onComplete()
+        {
+            document.getElementById('particle-build-progress').textContent = 'READY';
+        },
+        onError(error)
+        {
+            console.error(`[${planetName}] surface generation stopped`, error);
+        }
     });
-    earthSystemGroup.add(new THREE.Points(geo, mat));
 
     // 地球网格 (基准参考面)
     const wireGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(5.0, 24, 24));

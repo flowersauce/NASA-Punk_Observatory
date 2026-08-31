@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -51,7 +50,6 @@ if (typeof ResizeObserver !== 'undefined')
 window.addEventListener('resize', () =>
 {
     sharedTopoBackground.resize();
-    resizeScene();
 });
 
 const zoomDisplay = document.getElementById('zoom-text-display');
@@ -85,16 +83,36 @@ let moonsData    = [];
 // --- A. 地表点云 (Surface: Dusty Rock) ---
 function createMarsSurface()
 {
-    const surfaceParticles = 50000;
-    const surfacePos       = [];
-    const surfaceColors    = [];
-    const noiseGen         = new SimplexNoise('mars-craters-dust');
+    const planetName = 'mars';
+    const budget     = PLANET_PARTICLE_CONFIG[planetName].surface;
+    const tiers      = [budget, Math.floor(budget * 0.75), Math.floor(budget * 0.5), 250000];
+    const allocation = ParticleBuilder.allocate(tiers, (count) => ({
+        positions: new Float32Array(count * 3),
+        colors   : new Float32Array(count * 3)
+    }));
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(allocation.value.positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(allocation.value.colors, 3));
+    geometry.setDrawRange(0, 0);
 
     const colBase  = new THREE.Color('#94544d');
     const colDark  = new THREE.Color('#6b433c');
     const colLight = new THREE.Color('#d98c6b');
+    const noiseGen = new SimplexNoise('mars-craters-dust');
+    const surfaceColor = new THREE.Color();
 
-    for (let i = 0; i < surfaceParticles; i++)
+    const surfaceMaterial = new THREE.PointsMaterial({
+        size           : 0.055,
+        vertexColors   : true,
+        transparent    : true,
+        opacity        : 0.95,
+        sizeAttenuation: true
+    });
+    const points = new THREE.Points(geometry, surfaceMaterial);
+    marsSurfaceGroup.add(points);
+
+    function sampleSurfaceParticle(i, positions, colors)
     {
         const r     = coreRadius;
         const theta = Math.random() * Math.PI * 2;
@@ -116,9 +134,12 @@ function createMarsSurface()
         y *= (1 + heightMod / r);
         z *= (1 + heightMod / r);
 
-        surfacePos.push(x, y, z);
+        const offset = i * 3;
+        positions[offset]     = x;
+        positions[offset + 1] = y;
+        positions[offset + 2] = z;
 
-        let c   = new THREE.Color();
+        const c   = surfaceColor;
         let val = (nBase + 1) / 2;
 
         if (nCrater > 0.7)
@@ -135,21 +156,48 @@ function createMarsSurface()
         }
 
         c.multiplyScalar(0.9 + Math.random() * 0.2);
-        surfaceColors.push(c.r, c.g, c.b);
+        colors[offset]     = c.r;
+        colors[offset + 1] = c.g;
+        colors[offset + 2] = c.b;
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(surfacePos, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(surfaceColors, 3));
-
-    const mat = new THREE.PointsMaterial({
-        size           : 0.055,
-        vertexColors   : true,
-        transparent    : true,
-        opacity        : 0.95,
-        sizeAttenuation: true
+    ParticleBuilder.build({
+        total           : allocation.count,
+        readyCount      : Math.min(250000, allocation.count),
+        initialBatchSize: 10000,
+        writeBatch(start, end)
+        {
+            for (let i = start; i < end; i++)
+            {
+                sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
+            }
+            geometry.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geometry.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+        },
+        setDrawCount(count)
+        {
+            geometry.setDrawRange(0, count);
+        },
+        onReady()
+        {
+            renderer.render(scene, camera);
+            ParticleBuilder.markReady({page: planetName});
+        },
+        onProgress(percent)
+        {
+            document.getElementById('particle-build-progress').textContent = `${percent}%`;
+        },
+        onComplete()
+        {
+            document.getElementById('particle-build-progress').textContent = 'READY';
+        },
+        onError(error)
+        {
+            console.error(`[${planetName}] surface generation stopped`, error);
+        }
     });
-    marsSurfaceGroup.add(new THREE.Points(geo, mat));
 
     // 测量网格
     const wireGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(coreRadius + 0.02, 24, 12));

@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -50,7 +49,6 @@ if (typeof ResizeObserver !== 'undefined')
 window.addEventListener('resize', () =>
 {
     sharedTopoBackground.resize();
-    resizeScene();
 });
 
 const zoomDisplay = document.getElementById('zoom-text-display');
@@ -73,16 +71,36 @@ planetTiltGroup.add(tailGroup);
 // --- PART 3: 水星本体 ---
 function createMercury()
 {
-    const noiseGen      = new SimplexNoise('mercury-surface');
-    const particleCount = 45000;
-    const positions     = [];
-    const colors        = [];
+    const planetName = 'mercury';
+    const budget     = PLANET_PARTICLE_CONFIG[planetName].surface;
+    const tiers      = [budget, Math.floor(budget * 0.75), Math.floor(budget * 0.5), 250000];
+    const allocation  = ParticleBuilder.allocate(tiers, (count) => ({
+        positions: new Float32Array(count * 3),
+        colors   : new Float32Array(count * 3)
+    }));
 
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(allocation.value.positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(allocation.value.colors, 3));
+    geometry.setDrawRange(0, 0);
+
+    const surfaceMaterial = new THREE.PointsMaterial({
+        size           : 0.05,
+        vertexColors   : true,
+        transparent    : true,
+        opacity        : 0.95,
+        sizeAttenuation: true
+    });
+    const points = new THREE.Points(geometry, surfaceMaterial);
+    planetSpinGroup.add(points);
+
+    const noiseGen = new SimplexNoise('mercury-surface');
     const colBase  = new THREE.Color('#999999');
     const colDark  = new THREE.Color('#555555');
     const colLight = new THREE.Color('#cccccc');
+    const surfaceColor = new THREE.Color();
 
-    for (let i = 0; i < particleCount; i++)
+    function sampleSurfaceParticle(i, positions, colors)
     {
         let r       = 5.0;
         const theta = Math.random() * Math.PI * 2;
@@ -103,9 +121,12 @@ function createMercury()
         y = r * Math.sin(phi) * Math.sin(theta);
         z = r * Math.cos(phi);
 
-        positions.push(x, y, z);
+        const offset = i * 3;
+        positions[offset]     = x;
+        positions[offset + 1] = y;
+        positions[offset + 2] = z;
 
-        let c = new THREE.Color();
+        const c = surfaceColor;
         if (nCrater > 0.6)
         {
             c.copy(colDark).multiplyScalar(0.8);
@@ -119,23 +140,48 @@ function createMercury()
             c.copy(colBase);
         }
         c.multiplyScalar(0.9 + Math.random() * 0.2);
-        colors.push(c.r, c.g, c.b);
+        colors[offset]     = c.r;
+        colors[offset + 1] = c.g;
+        colors[offset + 2] = c.b;
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-    const mat = new THREE.PointsMaterial({
-        size           : 0.05,
-        vertexColors   : true,
-        transparent    : true,
-        opacity        : 0.95,
-        sizeAttenuation: true
+    ParticleBuilder.build({
+        total        : allocation.count,
+        readyCount   : Math.min(250000, allocation.count),
+        initialBatchSize: 10000,
+        writeBatch(start, end)
+        {
+            for (let i = start; i < end; i++)
+            {
+                sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
+            }
+            geometry.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geometry.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+        },
+        setDrawCount(count)
+        {
+            geometry.setDrawRange(0, count);
+        },
+        onReady()
+        {
+            renderer.render(scene, camera);
+            ParticleBuilder.markReady({page: planetName});
+        },
+        onProgress(percent)
+        {
+            document.getElementById('particle-build-progress').textContent = `${percent}%`;
+        },
+        onComplete()
+        {
+            document.getElementById('particle-build-progress').textContent = 'READY';
+        },
+        onError(error)
+        {
+            console.error(`[${planetName}] surface generation stopped`, error);
+        }
     });
-
-    const planet = new THREE.Points(geo, mat);
-    planetSpinGroup.add(planet);
 
     // 测量网格
     const wireGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(5.02, 24, 12));
