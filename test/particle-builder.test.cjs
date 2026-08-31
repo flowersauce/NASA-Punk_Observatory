@@ -82,3 +82,40 @@ test('cancel prevents queued batches from writing', () => {
     while (queue.length) queue.shift()();
     assert.equal(writes, 0);
 });
+
+test('planet config exposes every approved particle budget', () => {
+    const sandbox = {};
+    const source = fs.readFileSync('scripts/planets/config.js', 'utf8') +
+        '\n;globalThis.__particleConfig = PLANET_PARTICLE_CONFIG;';
+    vm.runInNewContext(source, sandbox);
+    const config = sandbox.__particleConfig;
+    assert.equal(config.sun.surface, 1_600_000);
+    assert.equal(config.mercury.surface, 1_000_000);
+    assert.equal(config.venus.surface, 1_200_000);
+    assert.equal(config.earth.surface, 1_250_000);
+    assert.equal(config.mars.surface, 1_050_000);
+    assert.equal(config.jupiter.surface, 1_500_000);
+    assert.equal(config.saturn.surface, 1_350_000);
+    assert.equal(config.uranus.surface, 1_200_000);
+    assert.equal(config.neptune.surface, 1_200_000);
+    assert.deepEqual(
+        Object.fromEntries(Object.entries(config).map(([name, value]) => [name, value.dynamic])),
+        {sun: 80_000, mercury: 30_000, venus: 60_000, earth: 50_000, mars: 40_000,
+            jupiter: 80_000, saturn: 60_000, uranus: 40_000, neptune: 60_000}
+    );
+});
+
+test('planet layout exposes surface generation progress', () => {
+    const sandbox = {
+        PLANET_UI_CONFIG: {},
+        ObservatoryUI: {
+            buildRightDock: (config) => config.footerRow,
+            buildVerticalZoomControl: () => ''
+        },
+        document: {getElementById: () => null}
+    };
+    sandbox.window = sandbox;
+    vm.runInNewContext(fs.readFileSync('scripts/components/planetUi.js', 'utf8'), sandbox);
+    const html = sandbox.buildPlanetLayout({active: 'earth', rows: []});
+    assert.match(html, /id="particle-build-progress">0%/);
+});

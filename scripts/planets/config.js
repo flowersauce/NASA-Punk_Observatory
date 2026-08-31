@@ -126,6 +126,18 @@ const PLANET_MONITOR_CONFIG = {
     }
 };
 
+const PLANET_PARTICLE_CONFIG = {
+    sun:     {surface: 1600000, dynamic: 80000},
+    mercury: {surface: 1000000, dynamic: 30000},
+    venus:   {surface: 1200000, dynamic: 60000},
+    earth:   {surface: 1250000, dynamic: 50000},
+    mars:    {surface: 1050000, dynamic: 40000},
+    jupiter: {surface: 1500000, dynamic: 80000},
+    saturn:  {surface: 1350000, dynamic: 60000},
+    uranus:  {surface: 1200000, dynamic: 40000},
+    neptune: {surface: 1200000, dynamic: 60000}
+};
+
 const PLANET_UI_CONFIG = Object.keys(PLANET_DOCK_CONFIG).reduce((acc, planetName) =>
 {
     acc[planetName] = Object.assign(
