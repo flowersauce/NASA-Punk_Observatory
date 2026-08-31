@@ -148,4 +148,6 @@
     {
         recalculateLayout();
     }
+
+    requestAnimationFrame(() => ParticleBuilder.markReady({page: 'index'}));
 })();

@@ -18,6 +18,17 @@ function loadBuilder(extra = {}) {
     return {api: sandbox.window.ParticleBuilder, events};
 }
 
+test('every HTML entry loads particle-builder before its page runtime', () => {
+    for (const name of ['index', 'sun', 'mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune']) {
+        const html = fs.readFileSync(`${name}.html`, 'utf8');
+        const builder = html.indexOf('./scripts/core/particle-builder.js');
+        const runtime = name === 'index'
+            ? html.indexOf('./scripts/pages/index.page.js')
+            : html.indexOf(`./scripts/planets/${name}.js`);
+        assert.ok(builder >= 0 && builder < runtime, `${name}.html script order`);
+    }
+});
+
 test('visibleCount selects approved profile counts', () => {
     const {api} = loadBuilder();
     assert.equal(api.visibleCount(1_600_000, 'high'), 1_600_000);
