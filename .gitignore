@@ -5,6 +5,7 @@ Thumbs.db
 # IDE 和编辑器文件
 .idea/
 .vscode/
+.worktrees/
 *.swp
 *.swo
 
