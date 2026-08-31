@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 800
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -18,9 +17,8 @@ const displaySize     = DisplayArea.getSize(canvasContainer);
 const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
-let currentZoom    = 38;
 const INITIAL_ZOOM = 38;
-camera.position.z  = currentZoom;
+camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -50,11 +48,8 @@ if (typeof ResizeObserver !== 'undefined')
 window.addEventListener('resize', () =>
 {
     sharedTopoBackground.resize();
-    resizeScene();
 });
 
-// [CHANGED] ID 变更为 zoom-text-display 以匹配 earth.html 的逻辑
-const zoomDisplay = document.getElementById('zoom-text-display');
 const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
 
 // 场景层级结构
@@ -89,22 +84,43 @@ const ringUniforms = {
 
 function createJupiter()
 {
+    const planetName = 'jupiter';
+    const budget     = PLANET_PARTICLE_CONFIG[planetName].surface;
+    const tiers      = [budget, Math.floor(budget * 0.75), Math.floor(budget * 0.5), 250000];
+    const allocation = ParticleBuilder.allocate(tiers, (count) => ({
+        positions: new Float32Array(count * 3),
+        colors   : new Float32Array(count * 3)
+    }));
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(allocation.value.positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(allocation.value.colors, 3));
+    geo.setDrawRange(0, 0);
+
+    const mat = new THREE.PointsMaterial({
+        size           : 0.07,
+        vertexColors   : true,
+        transparent    : true,
+        opacity        : 0.95,
+        sizeAttenuation: true
+    });
+
+    jupiterSurface = new THREE.Points(geo, mat);
+    jupiterSpinGroup.add(jupiterSurface);
+
     const noiseGen = new SimplexNoise('jupiter-ultimate-final');
+    const surfaceColor = new THREE.Color();
 
     // ==========================================
     // Layer 1: 底层对流层
     // ==========================================
-    const particleCount = 45000;
-    const positions     = [];
-    const colors        = [];
-
     const colZoneLight = new THREE.Color('#f0e2c2'); // 氨冰白
     const colZoneDark  = new THREE.Color('#d6c7a5'); // 奶油基底
     const colBeltBase  = new THREE.Color('#c28266'); // 浅赭石
     const colBeltDeep  = new THREE.Color('#8a3f2d'); // 氧化铁红
     const colPolar     = new THREE.Color('#787878'); // 极地灰
 
-    for (let i = 0; i < particleCount; i++)
+    function sampleSurfaceParticle(i, positions, colors)
     {
         // 随机厚度: 6.45 ~ 6.55
         const r = 6.45 + Math.random() * 0.1;
@@ -116,7 +132,10 @@ function createJupiter()
         const y = r * Math.sin(phi) * Math.sin(theta);
         const z = r * Math.cos(phi);
 
-        positions.push(x, y, z);
+        const offset = i * 3;
+        positions[offset]     = x;
+        positions[offset + 1] = y;
+        positions[offset + 2] = z;
 
         // --- 纹理生成 ---
         let lat          = y / 6.5;
@@ -128,8 +147,8 @@ function createJupiter()
         // 复合信号波
         let signal    = Math.sin(latNonLinear * 12.0 + noiseBase * 1.2);
 
-        let c    = new THREE.Color();
-        let dist = Math.abs(lat);
+        const c = surfaceColor;
+        const dist = Math.abs(lat);
 
         if (dist > 0.85)
         {
@@ -167,26 +186,51 @@ function createJupiter()
         }
 
         // 模拟 AO (环境光遮蔽)，底部粒子更暗
-        let depthFactor = (r - 6.45) / 0.1; // 0(底) ~ 1(顶)
+        const depthFactor = (r - 6.45) / 0.1; // 0(底) ~ 1(顶)
         c.multiplyScalar(0.8 + depthFactor * 0.4);
 
-        colors.push(c.r, c.g, c.b);
+        colors[offset]     = c.r;
+        colors[offset + 1] = c.g;
+        colors[offset + 2] = c.b;
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-    const mat = new THREE.PointsMaterial({
-        size           : 0.07,
-        vertexColors   : true,
-        transparent    : true,
-        opacity        : 0.95,
-        sizeAttenuation: true
+    ParticleBuilder.build({
+        total           : allocation.count,
+        readyCount      : Math.min(250000, allocation.count),
+        initialBatchSize: 10000,
+        writeBatch(start, end)
+        {
+            for (let i = start; i < end; i++)
+            {
+                sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
+            }
+            geo.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geo.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geo.attributes.position.needsUpdate = true;
+            geo.attributes.color.needsUpdate = true;
+        },
+        setDrawCount(count)
+        {
+            geo.setDrawRange(0, count);
+        },
+        onReady()
+        {
+            renderer.render(scene, camera);
+            ParticleBuilder.markReady({page: planetName});
+        },
+        onProgress(percent)
+        {
+            document.getElementById('particle-build-progress').textContent = `${percent}%`;
+        },
+        onComplete()
+        {
+            document.getElementById('particle-build-progress').textContent = 'READY';
+        },
+        onError(error)
+        {
+            console.error(`[${planetName}] surface generation stopped`, error);
+        }
     });
-
-    jupiterSurface = new THREE.Points(geo, mat);
-    jupiterSpinGroup.add(jupiterSurface);
 
     // ==========================================
     // Layer 2: 平流层薄雾
@@ -685,7 +729,7 @@ function animate()
     }
 
     // 5. 视角和缩放控制 (调用抽象模块)
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
+    updateInteraction(group, camera);
 
     // 6. 遥测数据更新 (调用抽象模块)
     updatePlanetTelemetry(jupiterSpinGroup, tgtLabel, 1);

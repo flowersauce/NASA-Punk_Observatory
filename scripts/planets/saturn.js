@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -18,9 +17,8 @@ const displaySize     = DisplayArea.getSize(canvasContainer);
 const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
-let currentZoom    = 42;
 const INITIAL_ZOOM = 42;
-camera.position.z  = currentZoom;
+camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -50,11 +48,8 @@ if (typeof ResizeObserver !== 'undefined')
 window.addEventListener('resize', () =>
 {
     sharedTopoBackground.resize();
-    resizeScene();
 });
 
-// [CHANGED] Update ID to match new HTML structure (keeps the slider working)
-const zoomDisplay = document.getElementById('zoom-text-display');
 const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
 
 const group = new THREE.Group();
@@ -84,17 +79,37 @@ const ringUniforms = {
 // --- A. 程序化气态巨行星 (SATURN) ---
 function createGasGiant()
 {
-    const particleCount = 35000;
-    const positions     = [];
-    const colors        = [];
+    const planetName = 'saturn';
+    const budget     = PLANET_PARTICLE_CONFIG[planetName].surface;
+    const tiers      = [budget, Math.floor(budget * 0.75), Math.floor(budget * 0.5), 250000];
+    const allocation = ParticleBuilder.allocate(tiers, (count) => ({
+        positions: new Float32Array(count * 3),
+        colors   : new Float32Array(count * 3)
+    }));
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(allocation.value.positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(allocation.value.colors, 3));
+    geo.setDrawRange(0, 0);
+
+    const mat = new THREE.PointsMaterial({
+        size        : 0.06,
+        vertexColors: true,
+        transparent : true,
+        opacity     : 0.95
+    });
+    const planet = new THREE.Points(geo, mat);
+    planetSpinGroup.add(planet);
+
     const noiseGen      = new SimplexNoise('saturn-seed-v2');
 
     const saturnCream = new THREE.Color('#f4f0d5');
     const saturnBeige = new THREE.Color('#d9c37c');
     const saturnTan   = new THREE.Color('#a68f58');
     const saturnBlue  = new THREE.Color('#6b7e8c');
+    const surfaceColor = new THREE.Color();
 
-    for (let i = 0; i < particleCount; i++)
+    function sampleSurfaceParticle(i, positions, colors)
     {
         const r     = 5.4 + Math.random() * 0.1;
         const theta = Math.random() * Math.PI * 2;
@@ -103,12 +118,15 @@ function createGasGiant()
         const y     = r * Math.sin(phi) * Math.sin(theta);
         const z     = r * Math.cos(phi);
 
-        positions.push(x, y, z);
+        const offset = i * 3;
+        positions[offset]     = x;
+        positions[offset + 1] = y;
+        positions[offset + 2] = z;
 
         let n    = noiseGen.noise3D(x * 2.5, y * 0.8, z * 2.5);
         let band = Math.sin(y * 3.5 + n * 0.3);
 
-        let c = new THREE.Color();
+        const c = surfaceColor;
         if (band > 0.5)
         {
             c.copy(saturnCream);
@@ -134,21 +152,48 @@ function createGasGiant()
             c.addScalar(0.1);
         }
 
-        colors.push(c.r, c.g, c.b);
+        colors[offset]     = c.r;
+        colors[offset + 1] = c.g;
+        colors[offset + 2] = c.b;
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-    const mat    = new THREE.PointsMaterial({
-        size        : 0.06,
-        vertexColors: true,
-        transparent : true,
-        opacity     : 0.95
+    ParticleBuilder.build({
+        total           : allocation.count,
+        readyCount      : Math.min(250000, allocation.count),
+        initialBatchSize: 10000,
+        writeBatch(start, end)
+        {
+            for (let i = start; i < end; i++)
+            {
+                sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
+            }
+            geo.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geo.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geo.attributes.position.needsUpdate = true;
+            geo.attributes.color.needsUpdate = true;
+        },
+        setDrawCount(count)
+        {
+            geo.setDrawRange(0, count);
+        },
+        onReady()
+        {
+            renderer.render(scene, camera);
+            ParticleBuilder.markReady({page: planetName});
+        },
+        onProgress(percent)
+        {
+            document.getElementById('particle-build-progress').textContent = `${percent}%`;
+        },
+        onComplete()
+        {
+            document.getElementById('particle-build-progress').textContent = 'READY';
+        },
+        onError(error)
+        {
+            console.error(`[${planetName}] surface generation stopped`, error);
+        }
     });
-    const planet = new THREE.Points(geo, mat);
-    planetSpinGroup.add(planet);
 
     // 平流层/雾霾
     const hazeCount = 15000;
@@ -573,7 +618,7 @@ function animate()
     });
 
     // 视角和缩放控制
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
+    updateInteraction(group, camera);
 
     // 遥测数据更新
     updatePlanetTelemetry(planetSpinGroup, tgtLabel, 1);

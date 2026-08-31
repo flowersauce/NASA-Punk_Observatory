@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 800
 });
-sharedTopoBackground.resize();
 
 
 // --- PART 2: Three.js 场景 ---
@@ -16,10 +15,9 @@ const displaySize     = DisplayArea.getSize(canvasContainer);
 const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
-let currentZoom    = 38;
 const INITIAL_ZOOM = 38;
 
-camera.position.z = currentZoom;
+camera.position.z = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -49,10 +47,8 @@ if (typeof ResizeObserver !== 'undefined')
 window.addEventListener('resize', () =>
 {
     sharedTopoBackground.resize();
-    resizeScene();
 });
 
-const zoomDisplay = document.getElementById('zoom-text-display');
 const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
 
 const group = new THREE.Group();
@@ -75,16 +71,36 @@ uranusTiltGroup.add(moonGroup);
 // --- PART 3: 天王星主体 ---
 function createUranus()
 {
-    const particleCount = 35000;
-    const positions     = [];
-    const colors        = [];
+    const planetName = 'uranus';
+    const budget     = PLANET_PARTICLE_CONFIG[planetName].surface;
+    const tiers      = [budget, Math.floor(budget * 0.75), Math.floor(budget * 0.5), 250000];
+    const allocation = ParticleBuilder.allocate(tiers, (count) => ({
+        positions: new Float32Array(count * 3),
+        colors   : new Float32Array(count * 3)
+    }));
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(allocation.value.positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(allocation.value.colors, 3));
+    geo.setDrawRange(0, 0);
+
+    const mat = new THREE.PointsMaterial({
+        size        : 0.06,
+        vertexColors: true,
+        transparent : true,
+        opacity     : 0.9
+    });
+    const planet = new THREE.Points(geo, mat);
+    uranusSpinGroup.add(planet);
+
     const noiseGen      = new SimplexNoise('uranus-base');
 
     const colBase = new THREE.Color('#a4d8e6');
     const colDeep = new THREE.Color('#4a9cb8');
     const colHigh = new THREE.Color('#e0ffff');
+    const surfaceColor = new THREE.Color();
 
-    for (let i = 0; i < particleCount; i++)
+    function sampleSurfaceParticle(i, positions, colors)
     {
         const r = 5.0;
 
@@ -95,10 +111,13 @@ function createUranus()
         const y = r * Math.sin(phi) * Math.sin(theta);
         const z = r * Math.cos(phi);
 
-        positions.push(x, y, z);
+        const offset = i * 3;
+        positions[offset]     = x;
+        positions[offset + 1] = y;
+        positions[offset + 2] = z;
 
         let lat = Math.abs(y / r);
-        let c   = new THREE.Color();
+        const c = surfaceColor;
 
         c.copy(colDeep).lerp(colBase, lat * 0.8 + 0.2);
 
@@ -113,22 +132,48 @@ function createUranus()
             c.multiplyScalar(1.05);
         }
 
-        colors.push(c.r, c.g, c.b);
+        colors[offset]     = c.r;
+        colors[offset + 1] = c.g;
+        colors[offset + 2] = c.b;
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-    const mat = new THREE.PointsMaterial({
-        size        : 0.06,
-        vertexColors: true,
-        transparent : true,
-        opacity     : 0.9
+    ParticleBuilder.build({
+        total           : allocation.count,
+        readyCount      : Math.min(250000, allocation.count),
+        initialBatchSize: 10000,
+        writeBatch(start, end)
+        {
+            for (let i = start; i < end; i++)
+            {
+                sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
+            }
+            geo.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geo.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geo.attributes.position.needsUpdate = true;
+            geo.attributes.color.needsUpdate = true;
+        },
+        setDrawCount(count)
+        {
+            geo.setDrawRange(0, count);
+        },
+        onReady()
+        {
+            renderer.render(scene, camera);
+            ParticleBuilder.markReady({page: planetName});
+        },
+        onProgress(percent)
+        {
+            document.getElementById('particle-build-progress').textContent = `${percent}%`;
+        },
+        onComplete()
+        {
+            document.getElementById('particle-build-progress').textContent = 'READY';
+        },
+        onError(error)
+        {
+            console.error(`[${planetName}] surface generation stopped`, error);
+        }
     });
-
-    const planet = new THREE.Points(geo, mat);
-    uranusSpinGroup.add(planet);
 
     const atmosGeo = new THREE.BufferGeometry();
     const atmosPos = [];
@@ -568,7 +613,7 @@ function animate()
     });
 
     // 2. 更新交互状态 (调用抽象模块)
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
+    updateInteraction(group, camera);
 
     // 3. 更新遥测数据 (调用抽象模块，启用 Dec 翻转)
     // 启用 Dec 翻转，以匹配 IAU 定义的北极方向和 Dec 读数。

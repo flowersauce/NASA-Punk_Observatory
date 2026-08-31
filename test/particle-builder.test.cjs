@@ -132,8 +132,10 @@ test('planet layout exposes surface generation progress', () => {
 });
 
 const ROCKY_BUDGETS = {mercury: 1_000_000, venus: 1_200_000, earth: 1_250_000, mars: 1_050_000};
+const GIANT_BUDGETS = {jupiter: 1_500_000, saturn: 1_350_000, uranus: 1_200_000, neptune: 1_200_000};
+const GIANT_DYNAMIC_CEILINGS = {jupiter: 80_000, saturn: 60_000, uranus: 40_000, neptune: 60_000};
 
-function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
+function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
     const allocations = [];
     const builds = [];
     const readiness = [];
@@ -147,6 +149,7 @@ function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
     const errors = [];
     const noiseLabels = [];
     const surfacePoints = [];
+    const points = [];
     let colorClones = 0;
     let clock = 0;
 
@@ -163,7 +166,12 @@ function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
         }
 
         add(...objects) {
+            objects.forEach((object) => { object.parent = this; });
             this.children.push(...objects);
+        }
+
+        clear() {
+            this.children.length = 0;
         }
 
         computeLineDistances() {}
@@ -260,6 +268,13 @@ function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
             this.b *= scalar;
             return this;
         }
+
+        addScalar(scalar) {
+            this.r += scalar;
+            this.g += scalar;
+            this.b += scalar;
+            return this;
+        }
     }
 
     class SimplexNoise {
@@ -268,6 +283,10 @@ function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
         }
 
         noise3D() {
+            return 0;
+        }
+
+        noise2D() {
             return 0;
         }
     }
@@ -307,11 +326,13 @@ function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
             this.geometry = geometry;
             this.material = material;
             surfacePoints.push(this);
+            points.push(this);
         }
     }
     class Line extends Object3D {}
     class LineSegments extends Object3D {}
     class Mesh extends Object3D {}
+    class ShaderMaterial extends Material {}
 
     const THREE = {
         Scene: class extends Object3D {},
@@ -335,7 +356,10 @@ function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
         BoxGeometry: class extends BufferGeometry {},
         MeshBasicMaterial,
         IcosahedronGeometry: SphereGeometry,
-        AdditiveBlending: 2
+        ShaderMaterial,
+        AdditiveBlending: 2,
+        NormalBlending: 1,
+        MathUtils: {clamp: (value, min, max) => Math.min(max, Math.max(min, value))}
     };
 
     const canvasContainer = {appendChild() {}};
@@ -387,7 +411,7 @@ function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
         document,
         THREE,
         SimplexNoise,
-        PLANET_PARTICLE_CONFIG: {[planetName]: {surface: ROCKY_BUDGETS[planetName]}},
+        PLANET_PARTICLE_CONFIG: {[planetName]: {surface: ROCKY_BUDGETS[planetName] || GIANT_BUDGETS[planetName]}},
         DisplayArea: {getSize: () => ({width: 100, height: 100})},
         createTopoBackground: () => ({resize() {}}),
         initInteraction() {},
@@ -448,14 +472,18 @@ function loadRockyRuntime(planetName, {allocationCount = 300000} = {}) {
         completionEvents,
         errors,
         noiseLabels,
+        points,
         surface: surfacePoints[0],
         allocationCount,
+        dynamicCeiling: GIANT_DYNAMIC_CEILINGS[planetName],
         driveBuild() {
             while (builderCallbacks.length) builderCallbacks.shift()();
         },
         get colorClones() { return colorClones; }
     };
 }
+
+const loadRockyRuntime = loadPlanetRuntime;
 
 test('rocky runtimes complete progressive surface builds within bounds', () => {
     for (const planetName of Object.keys(ROCKY_BUDGETS)) {
@@ -497,6 +525,55 @@ test('rocky runtimes complete progressive surface builds within bounds', () => {
             assert.equal(attribute.needsUpdate, true, `${planetName} attribute update flag`);
             assert.ok(attribute.array.every(Number.isFinite), `${planetName} finite attribute values`);
         }
+    }
+});
+
+test('giant runtimes complete progressive surfaces without consuming auxiliary geometry budgets', () => {
+    for (const planetName of Object.keys(GIANT_BUDGETS)) {
+        const env = loadPlanetRuntime(planetName);
+        const budget = GIANT_BUDGETS[planetName];
+        assert.deepEqual(env.allocations[0], [budget, Math.floor(budget * 0.75), Math.floor(budget * 0.5), 250000]);
+        assert.equal(env.builds.length, 1, `${planetName} build count`);
+        assert.equal(env.builds[0].total, env.allocationCount, `${planetName} total`);
+        assert.equal(env.builds[0].readyCount, 250000, `${planetName} ready count`);
+        assert.equal(env.builds[0].initialBatchSize, 10000, `${planetName} batch size`);
+
+        env.renderEvents.length = 0;
+        env.driveBuild();
+
+        assert.equal(env.readiness.length, 1, `${planetName} readiness count`);
+        assert.equal(env.readiness[0].page, planetName);
+        assert.ok(env.readinessDrawCounts[0] >= 250000, `${planetName} readiness threshold`);
+        assert.ok(env.readinessDrawCounts[0] <= budget, `${planetName} readiness bound`);
+        assert.deepEqual(env.renderEvents.slice(0, 2), ['render', 'ready'], `${planetName} render order`);
+        assert.equal(env.completionEvents.length, 1, `${planetName} completion count`);
+        assert.ok(env.progressValues.includes('100%'), `${planetName} progress completion`);
+        assert.equal(env.progressValues.at(-1), 'READY', `${planetName} completion status`);
+        assert.equal(env.errors.length, 0, `${planetName} error count`);
+
+        assert.deepEqual(env.drawRanges[0], [0, 0], `${planetName} initial draw range`);
+        assert.equal(env.drawRanges.at(-1)[1], env.allocationCount, `${planetName} final draw range`);
+        assert.ok(env.drawRanges.every(([, count]) => count >= 0 && count <= env.allocationCount), `${planetName} draw bounds`);
+        assert.ok(env.drawRanges.every((range, index) => index === 0 || range[1] >= env.drawRanges[index - 1][1]), `${planetName} draw progression`);
+
+        const position = env.surface.geometry.attributes.position;
+        const color = env.surface.geometry.attributes.color;
+        assert.equal(position.array.length, env.allocationCount * 3, `${planetName} position bounds`);
+        assert.equal(color.array.length, env.allocationCount * 3, `${planetName} color bounds`);
+        for (const attribute of [position, color]) {
+            assert.ok(attribute.updateRanges.length > 0, `${planetName} attribute update ranges`);
+            assert.ok(attribute.updateRanges.every(({offset, count}) => offset >= 0 && count > 0 && offset + count <= env.allocationCount * 3), `${planetName} attribute update bounds`);
+            const last = attribute.updateRanges.at(-1);
+            assert.equal(last.offset + last.count, env.allocationCount * 3, `${planetName} attribute final update`);
+            assert.equal(attribute.needsUpdate, true, `${planetName} attribute update flag`);
+            assert.ok(attribute.array.every(Number.isFinite), `${planetName} finite attribute values`);
+        }
+
+        const auxiliaryCounts = env.points.slice(1).map((point) =>
+            (point.geometry.attributes.position?.array.length || 0) / 3);
+        assert.ok(auxiliaryCounts.some((count) => count > 0), `${planetName} auxiliary geometry retained`);
+        assert.ok(auxiliaryCounts.every((count) => count <= env.dynamicCeiling), `${planetName} auxiliary particle ceiling`);
+        assert.ok(env.points.slice(1).some((point) => point.parent !== env.surface.parent), `${planetName} auxiliary geometry is independent`);
     }
 });
 

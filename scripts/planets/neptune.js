@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -18,9 +17,8 @@ const displaySize     = DisplayArea.getSize(canvasContainer);
 const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
-let currentZoom    = 30;
 const INITIAL_ZOOM = 30;
-camera.position.z  = currentZoom;
+camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -50,10 +48,8 @@ if (typeof ResizeObserver !== 'undefined')
 window.addEventListener('resize', () =>
 {
     sharedTopoBackground.resize();
-    resizeScene();
 });
 
-const zoomDisplay = document.getElementById('zoom-text-display');
 const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
 
 const group = new THREE.Group();
@@ -76,17 +72,38 @@ group.add(moonSystemGroup);
 // --- PART 3: 程序化海王星 (Atmosphere) ---
 function createNeptune()
 {
-    const particleCount = 85000;
-    const positions     = [];
-    const colors        = [];
+    const planetName = 'neptune';
+    const budget     = PLANET_PARTICLE_CONFIG[planetName].surface;
+    const tiers      = [budget, Math.floor(budget * 0.75), Math.floor(budget * 0.5), 250000];
+    const allocation = ParticleBuilder.allocate(tiers, (count) => ({
+        positions: new Float32Array(count * 3),
+        colors   : new Float32Array(count * 3)
+    }));
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(allocation.value.positions, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(allocation.value.colors, 3));
+    geo.setDrawRange(0, 0);
+
+    const mat = new THREE.PointsMaterial({
+        size           : 0.055,
+        vertexColors   : true,
+        transparent    : true,
+        opacity        : 0.85,
+        sizeAttenuation: true
+    });
+    const planet = new THREE.Points(geo, mat);
+    planetSpinGroup.add(planet);
+
     const noiseGen      = new SimplexNoise('neptune-wind-shear');
 
     const colDeep   = new THREE.Color('#1a237e');
     const colMid    = new THREE.Color('#2962ff');
     const colBright = new THREE.Color('#448aff');
     const colStorm  = new THREE.Color('#0d1238');
+    const surfaceColor = new THREE.Color();
 
-    for (let i = 0; i < particleCount; i++)
+    function sampleSurfaceParticle(i, positions, colors)
     {
         const r     = 5.0 + Math.random() * 0.3;
         const theta = Math.random() * Math.PI * 2;
@@ -107,9 +124,12 @@ function createNeptune()
             }
         }
 
-        positions.push(x, y, z);
+        const offset = i * 3;
+        positions[offset]     = x;
+        positions[offset + 1] = y;
+        positions[offset + 2] = z;
 
-        let c = new THREE.Color();
+        const c = surfaceColor;
 
         if (isStorm)
         {
@@ -131,21 +151,48 @@ function createNeptune()
         const depthFactor = (r - 5.0) / 0.3;
         c.multiplyScalar(0.5 + depthFactor * 0.5);
 
-        colors.push(c.r, c.g, c.b);
+        colors[offset]     = c.r;
+        colors[offset + 1] = c.g;
+        colors[offset + 2] = c.b;
     }
 
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-    const mat = new THREE.PointsMaterial({
-        size           : 0.055,
-        vertexColors   : true,
-        transparent    : true,
-        opacity        : 0.85,
-        sizeAttenuation: true
+    ParticleBuilder.build({
+        total           : allocation.count,
+        readyCount      : Math.min(250000, allocation.count),
+        initialBatchSize: 10000,
+        writeBatch(start, end)
+        {
+            for (let i = start; i < end; i++)
+            {
+                sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
+            }
+            geo.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geo.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
+            geo.attributes.position.needsUpdate = true;
+            geo.attributes.color.needsUpdate = true;
+        },
+        setDrawCount(count)
+        {
+            geo.setDrawRange(0, count);
+        },
+        onReady()
+        {
+            renderer.render(scene, camera);
+            ParticleBuilder.markReady({page: planetName});
+        },
+        onProgress(percent)
+        {
+            document.getElementById('particle-build-progress').textContent = `${percent}%`;
+        },
+        onComplete()
+        {
+            document.getElementById('particle-build-progress').textContent = 'READY';
+        },
+        onError(error)
+        {
+            console.error(`[${planetName}] surface generation stopped`, error);
+        }
     });
-    planetSpinGroup.add(new THREE.Points(geo, mat));
 
     const wireGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(5.32, 32, 16));
     const wireMat = new THREE.LineBasicMaterial({
@@ -442,7 +489,7 @@ function animate()
         moon.mesh.rotation.y += 0.02;
     });
 
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
+    updateInteraction(group, camera);
     updatePlanetTelemetry(planetSpinGroup, tgtLabel, 1);
 
     renderer.render(scene, camera);
