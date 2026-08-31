@@ -150,6 +150,7 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
     const noiseLabels = [];
     const surfacePoints = [];
     const points = [];
+    const lines = [];
     let colorClones = 0;
     let clock = 0;
 
@@ -329,7 +330,14 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
             points.push(this);
         }
     }
-    class Line extends Object3D {}
+    class Line extends Object3D {
+        constructor(geometry, material) {
+            super();
+            this.geometry = geometry;
+            this.material = material;
+            lines.push(this);
+        }
+    }
     class LineSegments extends Object3D {}
     class Mesh extends Object3D {}
     class ShaderMaterial extends Material {}
@@ -473,6 +481,7 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         errors,
         noiseLabels,
         points,
+        lines,
         surface: surfacePoints[0],
         allocationCount,
         dynamicCeiling: GIANT_DYNAMIC_CEILINGS[planetName],
@@ -575,6 +584,14 @@ test('giant runtimes complete progressive surfaces without consuming auxiliary g
         assert.ok(auxiliaryCounts.every((count) => count <= env.dynamicCeiling), `${planetName} auxiliary particle ceiling`);
         assert.ok(env.points.slice(1).some((point) => point.parent !== env.surface.parent), `${planetName} auxiliary geometry is independent`);
     }
+});
+
+test('saturn keeps its polar hexagon as static geometry under the spin group', () => {
+    const env = loadPlanetRuntime('saturn');
+    const hexagons = env.lines.filter((line) => line.geometry.attributes.position?.array.length === 21);
+    assert.equal(hexagons.length, 1, 'one closed six-vertex polar hexagon');
+    assert.equal(hexagons[0].parent, env.surface.parent, 'polar hexagon shares planetSpinGroup with the surface');
+    assert.equal(hexagons[0].geometry.attributes.position.needsUpdate, false, 'polar hexagon remains static');
 });
 
 test('earth fills non-land samples with spherical ocean points', () => {

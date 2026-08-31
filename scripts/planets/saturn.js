@@ -243,6 +243,25 @@ function createGasGiant()
         opacity    : 0.1
     });
     planetSpinGroup.add(new THREE.LineSegments(wireGeo, wireMat));
+
+    const polarHexagonPoints = [];
+    const polarHexagonRadius = 1.35;
+    const polarSurfaceRadius  = 5.58;
+    for (let i = 0; i <= 6; i++)
+    {
+        const angle = i * Math.PI / 3;
+        const x     = polarHexagonRadius * Math.cos(angle);
+        const z     = polarHexagonRadius * Math.sin(angle);
+        const y     = Math.sqrt(Math.max(0, polarSurfaceRadius ** 2 - x ** 2 - z ** 2));
+        polarHexagonPoints.push({x, y, z});
+    }
+    const polarHexagonGeo = new THREE.BufferGeometry().setFromPoints(polarHexagonPoints);
+    const polarHexagonMat = new THREE.LineBasicMaterial({
+        color      : '#6b7e8c',
+        transparent: true,
+        opacity    : 0.6
+    });
+    planetSpinGroup.add(new THREE.Line(polarHexagonGeo, polarHexagonMat));
 }
 
 createGasGiant();
