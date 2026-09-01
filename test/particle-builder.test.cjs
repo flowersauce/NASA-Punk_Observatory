@@ -133,7 +133,8 @@ test('planet layout exposes surface generation progress', () => {
 
 const ROCKY_BUDGETS = {mercury: 1_000_000, venus: 1_200_000, earth: 1_250_000, mars: 1_050_000};
 const GIANT_BUDGETS = {jupiter: 1_500_000, saturn: 1_350_000, uranus: 1_200_000, neptune: 1_200_000};
-const GIANT_DYNAMIC_CEILINGS = {jupiter: 80_000, saturn: 60_000, uranus: 40_000, neptune: 60_000};
+const SUN_BUDGET = 1_600_000;
+const DYNAMIC_CEILINGS = {sun: 80_000, jupiter: 80_000, saturn: 60_000, uranus: 40_000, neptune: 60_000};
 
 function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
     const allocations = [];
@@ -159,6 +160,14 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
             this.children = [];
             this.rotation = {x: 0, y: 0, z: 0};
             this.position = {x: 0, y: 0, z: 0};
+            this.scale = {
+                x: 1, y: 1, z: 1,
+                set: (x, y, z) => {
+                    this.scale.x = x;
+                    this.scale.y = y;
+                    this.scale.z = z;
+                }
+            };
             this.position.set = (x, y, z) => {
                 this.position.x = x;
                 this.position.y = y;
@@ -196,6 +205,64 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         setFromPoints(points) {
             this.setAttribute('position', new BufferAttribute(new Float32Array(points.length * 3), 3));
             return this;
+        }
+    }
+
+    class Vector3 {
+        constructor(x = 0, y = 0, z = 0) {
+            this.set(x, y, z);
+        }
+
+        set(x, y, z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            return this;
+        }
+
+        setFromSphericalCoords(radius, phi, theta) {
+            return this.set(
+                radius * Math.sin(phi) * Math.cos(theta),
+                radius * Math.sin(phi) * Math.sin(theta),
+                radius * Math.cos(phi)
+            );
+        }
+
+        copy(vector) {
+            return this.set(vector.x, vector.y, vector.z);
+        }
+
+        clone() {
+            return new Vector3(this.x, this.y, this.z);
+        }
+
+        add(vector) {
+            return this.set(this.x + vector.x, this.y + vector.y, this.z + vector.z);
+        }
+
+        addScaledVector(vector, scalar) {
+            return this.set(
+                this.x + vector.x * scalar,
+                this.y + vector.y * scalar,
+                this.z + vector.z * scalar
+            );
+        }
+
+        multiplyScalar(scalar) {
+            return this.set(this.x * scalar, this.y * scalar, this.z * scalar);
+        }
+
+        normalize() {
+            const length = Math.hypot(this.x, this.y, this.z) || 1;
+            return this.multiplyScalar(1 / length);
+        }
+
+        lerp(vector, alpha) {
+            return this.set(
+                this.x + (vector.x - this.x) * alpha,
+                this.y + (vector.y - this.y) * alpha,
+                this.z + (vector.z - this.z) * alpha
+            );
         }
     }
 
@@ -290,6 +357,10 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         noise2D() {
             return 0;
         }
+
+        noise4D() {
+            return 0;
+        }
     }
 
     class EllipseCurve {
@@ -300,6 +371,12 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
 
     class SphereGeometry extends BufferGeometry {
         scale() {}
+    }
+
+    class CubicBezierCurve3 {
+        getPoints(count) {
+            return new Array(count + 1).fill(null).map(() => new Vector3());
+        }
     }
 
     class WebGLRenderer {
@@ -347,6 +424,7 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         Group: class extends Object3D {},
         PerspectiveCamera,
         WebGLRenderer,
+        Vector3,
         BufferGeometry,
         BufferAttribute,
         Float32BufferAttribute,
@@ -360,6 +438,7 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         Line,
         LineSegments,
         EllipseCurve,
+        CubicBezierCurve3,
         Mesh,
         BoxGeometry: class extends BufferGeometry {},
         MeshBasicMaterial,
@@ -419,7 +498,7 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         document,
         THREE,
         SimplexNoise,
-        PLANET_PARTICLE_CONFIG: {[planetName]: {surface: ROCKY_BUDGETS[planetName] || GIANT_BUDGETS[planetName]}},
+        PLANET_PARTICLE_CONFIG: {[planetName]: {surface: planetName === 'sun' ? SUN_BUDGET : ROCKY_BUDGETS[planetName] || GIANT_BUDGETS[planetName]}},
         DisplayArea: {getSize: () => ({width: 100, height: 100})},
         createTopoBackground: () => ({resize() {}}),
         initInteraction() {},
@@ -484,7 +563,7 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         lines,
         surface: surfacePoints[0],
         allocationCount,
-        dynamicCeiling: GIANT_DYNAMIC_CEILINGS[planetName],
+        dynamicCeiling: DYNAMIC_CEILINGS[planetName],
         driveBuild() {
             while (builderCallbacks.length) builderCallbacks.shift()();
         },
@@ -584,6 +663,38 @@ test('giant runtimes complete progressive surfaces without consuming auxiliary g
         assert.ok(auxiliaryCounts.every((count) => count <= env.dynamicCeiling), `${planetName} auxiliary particle ceiling`);
         assert.ok(env.points.slice(1).some((point) => point.parent !== env.surface.parent), `${planetName} auxiliary geometry is independent`);
     }
+});
+
+test('Sun streams its million-particle photosphere without animate allocations', () => {
+    const source = fs.readFileSync('scripts/planets/sun.js', 'utf8');
+    const animateSource = source.slice(source.indexOf('function animate()'));
+    assert.doesNotMatch(animateSource, /new THREE\.(Color|Vector3)/);
+
+    const env = loadPlanetRuntime('sun');
+    assert.deepEqual(env.allocations[0], [SUN_BUDGET, Math.floor(SUN_BUDGET * 0.75), Math.floor(SUN_BUDGET * 0.5), 250000]);
+    assert.equal(env.builds.length, 1, 'Sun build count');
+    assert.equal(env.builds[0].total, env.allocationCount, 'Sun total');
+    assert.equal(env.builds[0].readyCount, 250000, 'Sun ready count');
+    assert.equal(env.builds[0].initialBatchSize, 10000, 'Sun batch size');
+
+    env.renderEvents.length = 0;
+    env.driveBuild();
+
+    assert.equal(env.readiness.length, 1, 'Sun readiness count');
+    assert.equal(env.readiness[0].page, 'sun');
+    assert.ok(env.readinessDrawCounts[0] >= 250000, 'Sun readiness threshold');
+    assert.ok(env.readinessDrawCounts[0] <= SUN_BUDGET, 'Sun readiness bound');
+    assert.deepEqual(env.renderEvents.slice(0, 2), ['render', 'ready'], 'Sun render order');
+    assert.equal(env.completionEvents.length, 1, 'Sun completion count');
+    assert.equal(env.progressValues.at(-1), 'READY', 'Sun completion status');
+
+    const surface = env.surface.geometry;
+    assert.equal(surface.attributes.position.array.length, env.allocationCount * 3, 'Sun position bounds');
+    assert.equal(surface.attributes.color.array.length, env.allocationCount * 3, 'Sun color bounds');
+    assert.equal(env.drawRanges[0][1], 0, 'Sun starts hidden');
+    assert.equal(env.drawRanges.at(-1)[1], env.allocationCount, 'Sun final draw range');
+    assert.ok(env.points.slice(1).every((point) =>
+        (point.geometry.attributes.position?.array.length || 0) / 3 <= env.dynamicCeiling), 'Sun dynamic particle ceiling');
 });
 
 test('saturn keeps its polar hexagon as static geometry under the spin group', () => {
