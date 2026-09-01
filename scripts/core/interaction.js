@@ -77,68 +77,11 @@ function updateInteraction(group, camera)
 
 function initPrecisionSlider(sliderElement, onUpdate)
 {
-    let isDragging = false;
-    sliderElement.addEventListener('mousedown', (e) =>
+    sliderElement.addEventListener('input', (e) =>
     {
-        isDragging                 = true;
-        document.body.style.cursor = 'grabbing';
-        sliderElement.classList.add('active');
-        handleDrag(e);
-        window.addEventListener('mousemove', handleGlobalMove);
-        window.addEventListener('mouseup', handleGlobalUp);
-    });
-
-    function handleGlobalMove(e)
-    {
-        if (isDragging)
-        {
-            e.preventDefault();
-            handleDrag(e);
-        }
-    }
-
-    function handleGlobalUp()
-    {
-        if (isDragging)
-        {
-            isDragging                 = false;
-            document.body.style.cursor = '';
-            sliderElement.classList.remove('active');
-            window.removeEventListener('mousemove', handleGlobalMove);
-            window.removeEventListener('mouseup', handleGlobalUp);
-        }
-    }
-
-    function handleDrag(e)
-    {
-        const rect       = sliderElement.getBoundingClientRect();
-        const isVertical = sliderElement.classList.contains('vertical');
-        let percent;
-        if (isVertical)
-        {
-            const relativeY = e.clientY - rect.top;
-            percent         = 1 - (relativeY / rect.height);
-        }
-        else
-        {
-            const relativeX = e.clientX - rect.left;
-            percent         = relativeX / rect.width;
-        }
-        percent = Math.max(0, Math.min(1, percent));
-
-        const min    = parseFloat(sliderElement.min) || 0;
-        const max    = parseFloat(sliderElement.max) || 100;
-        const step   = parseFloat(sliderElement.step) || 1;
-        let newValue = min + percent * (max - min);
-        if (step > 0)
-        {
-            newValue = Math.round(newValue / step) * step;
-        }
-
-        sliderElement.value = newValue;
         if (onUpdate)
         {
-            onUpdate(newValue);
+            onUpdate(parseFloat(e.target.value));
         }
-    }
+    });
 }

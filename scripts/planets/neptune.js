@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -18,16 +17,15 @@ const displaySize     = DisplayArea.getSize(canvasContainer);
 const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
-let currentZoom    = 30;
 const INITIAL_ZOOM = 30;
-camera.position.z  = currentZoom;
+camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha    : true
 });
 renderer.setSize(displaySize.width, displaySize.height);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 canvasContainer.appendChild(renderer.domElement);
 
 function resizeScene()
@@ -53,8 +51,7 @@ window.addEventListener('resize', () =>
     resizeScene();
 });
 
-const zoomDisplay = document.getElementById('zoom-text-display');
-const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
+const tgtLabel = document.querySelector('.monitor-label.label-bottom');
 
 const group = new THREE.Group();
 scene.add(group);
@@ -76,67 +73,13 @@ group.add(moonSystemGroup);
 // --- PART 3: 程序化海王星 (Atmosphere) ---
 function createNeptune()
 {
-    const particleCount = 85000;
-    const positions     = [];
-    const colors        = [];
     const noiseGen      = new SimplexNoise('neptune-wind-shear');
 
     const colDeep   = new THREE.Color('#1a237e');
     const colMid    = new THREE.Color('#2962ff');
     const colBright = new THREE.Color('#448aff');
     const colStorm  = new THREE.Color('#0d1238');
-
-    for (let i = 0; i < particleCount; i++)
-    {
-        const r     = 5.0 + Math.random() * 0.3;
-        const theta = Math.random() * Math.PI * 2;
-        const phi   = Math.acos(2 * Math.random() - 1);
-
-        let x = r * Math.sin(phi) * Math.cos(theta);
-        let y = r * Math.sin(phi) * Math.sin(theta);
-        let z = r * Math.cos(phi);
-
-        let nBand = noiseGen.noise3D(x * 0.5, y * 3.0, z * 0.5);
-
-        let isStorm = false;
-        if (y < -1.5 && y > -2.5 && x > 0 && Math.abs(z) < 2.0)
-        {
-            if (Math.random() > 0.6)
-            {
-                isStorm = true;
-            }
-        }
-
-        positions.push(x, y, z);
-
-        let c = new THREE.Color();
-
-        if (isStorm)
-        {
-            c.copy(colStorm);
-        }
-        else
-        {
-            const val = (nBand + 1) / 2;
-            if (val < 0.4)
-            {
-                c.copy(colDeep).lerp(colMid, val / 0.4);
-            }
-            else
-            {
-                c.copy(colMid).lerp(colBright, (val - 0.4) / 0.6);
-            }
-        }
-
-        const depthFactor = (r - 5.0) / 0.3;
-        c.multiplyScalar(0.5 + depthFactor * 0.5);
-
-        colors.push(c.r, c.g, c.b);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const sampleColor = new THREE.Color();
 
     const mat = new THREE.PointsMaterial({
         size           : 0.055,
@@ -145,7 +88,65 @@ function createNeptune()
         opacity        : 0.85,
         sizeAttenuation: true
     });
-    planetSpinGroup.add(new THREE.Points(geo, mat));
+    ParticleSurface.build({
+        THREE,
+        parent  : planetSpinGroup,
+        material: mat,
+        sample(i, positions, colors)
+        {
+            const r     = 5.0 + Math.random() * 0.3;
+            const theta = Math.random() * Math.PI * 2;
+            const phi   = Math.acos(2 * Math.random() - 1);
+
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+
+            const nBand = noiseGen.noise3D(x * 0.5, y * 3.0, z * 0.5);
+
+            let isStorm = false;
+            if (y < -1.5 && y > -2.5 && x > 0 && Math.abs(z) < 2.0)
+            {
+                if (Math.random() > 0.6)
+                {
+                    isStorm = true;
+                }
+            }
+
+            const offset = i * 3;
+            positions[offset]     = x;
+            positions[offset + 1] = y;
+            positions[offset + 2] = z;
+
+            if (isStorm)
+            {
+                sampleColor.copy(colStorm);
+            }
+            else
+            {
+                const val = (nBand + 1) / 2;
+                if (val < 0.4)
+                {
+                    sampleColor.copy(colDeep).lerp(colMid, val / 0.4);
+                }
+                else
+                {
+                    sampleColor.copy(colMid).lerp(colBright, (val - 0.4) / 0.6);
+                }
+            }
+
+            const depthFactor = (r - 5.0) / 0.3;
+            sampleColor.multiplyScalar(0.5 + depthFactor * 0.5);
+
+            colors[offset]     = sampleColor.r;
+            colors[offset + 1] = sampleColor.g;
+            colors[offset + 2] = sampleColor.b;
+        },
+        onError(error)
+        {
+            console.error('[Neptune] surface generation stopped', error);
+        }
+    });
 
     const wireGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(5.32, 32, 16));
     const wireMat = new THREE.LineBasicMaterial({
@@ -442,7 +443,7 @@ function animate()
         moon.mesh.rotation.y += 0.02;
     });
 
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
+    updateInteraction(group, camera);
     updatePlanetTelemetry(planetSpinGroup, tgtLabel, 1);
 
     renderer.render(scene, camera);

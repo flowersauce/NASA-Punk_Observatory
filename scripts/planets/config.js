@@ -2,6 +2,7 @@ const PLANET_DOCK_CONFIG = {
     sun    : {
         title  : 'SOL',
         badge  : 'STAR',
+        reticleLarge: true,
         subText: 'SYS: <b>SOL</b> // TYPE: <b>G2V</b> // AGE: <b>4.60 BY</b>',
         rows   : [
             '&gt; THERMAL_SCAN: <span>5778 K</span> // STABLE',
@@ -52,6 +53,7 @@ const PLANET_DOCK_CONFIG = {
     jupiter: {
         title  : 'SOL V',
         badge  : 'JUPITER',
+        reticleLarge: true,
         subText: 'SYS: <b>SOL</b> // ORB: <b>5.20 AU</b> // ECC: <b>0.0484</b>',
         rows   : [
             '&gt; TOPO_SCAN: <span>N/A</span> <span class="alert">[GAS_GIANT]</span>',
@@ -62,6 +64,7 @@ const PLANET_DOCK_CONFIG = {
     saturn : {
         title  : 'SOL VI',
         badge  : 'SATURN',
+        reticleLarge: true,
         subText: 'SYS: <b>SOL</b> // ORB: <b>9.58 AU</b> // ECC: <b>0.0541</b>',
         rows   : [
             '&gt; TOPO_SCAN: <span>N/A</span> <span class="alert">[GAS_GIANT]</span>',
@@ -72,6 +75,7 @@ const PLANET_DOCK_CONFIG = {
     uranus : {
         title  : 'SOL VII',
         badge  : 'URANUS',
+        reticleLarge: true,
         subText: 'SYS: <b>SOL</b> // ORB: <b>19.22 AU</b> // ECC: <b>0.0472</b>',
         rows   : [
             '&gt; TOPO_SCAN: <span>N/A</span> <span class="alert">[ICE_GIANT]</span>',
@@ -82,6 +86,7 @@ const PLANET_DOCK_CONFIG = {
     neptune: {
         title  : 'SOL VIII',
         badge  : 'NEPTUNE',
+        activeMarkerExtraClass: 'p-neptune-theme',
         subText: 'SYS: <b>SOL</b> // ORB: <b>30.07 AU</b> // ECC: <b>0.0086</b>',
         rows   : [
             '&gt; TOPO_SCAN: <span>N/A</span> <span class="alert">[ICE_GIANT]</span>',
@@ -91,47 +96,14 @@ const PLANET_DOCK_CONFIG = {
     }
 };
 
-const PLANET_MONITOR_CONFIG = {
-    sun    : {
-        active      : 'sun',
-        reticleLarge: true
-    },
-    mercury: {
-        active: 'mercury'
-    },
-    venus  : {
-        active: 'venus'
-    },
-    earth  : {
-        active: 'earth'
-    },
-    mars   : {
-        active: 'mars'
-    },
-    jupiter: {
-        active      : 'jupiter',
-        reticleLarge: true
-    },
-    saturn : {
-        active      : 'saturn',
-        reticleLarge: true
-    },
-    uranus : {
-        active      : 'uranus',
-        reticleLarge: true
-    },
-    neptune: {
-        active                : 'neptune',
-        activeMarkerExtraClass: 'p-neptune-theme'
-    }
+const PLANET_PARTICLE_CONFIG = {
+    sun    : {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 32000},
+    mercury: {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 8000},
+    venus  : {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 40000},
+    earth  : {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 44000},
+    mars   : {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 20000},
+    jupiter: {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 52000},
+    saturn : {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 86000},
+    uranus : {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 69000},
+    neptune: {surface: ParticleSurface.SURFACE_PARTICLE_COUNT, dynamic: 49000}
 };
-
-const PLANET_UI_CONFIG = Object.keys(PLANET_DOCK_CONFIG).reduce((acc, planetName) =>
-{
-    acc[planetName] = Object.assign(
-        {},
-        PLANET_DOCK_CONFIG[planetName],
-        PLANET_MONITOR_CONFIG[planetName]
-    );
-    return acc;
-}, {});

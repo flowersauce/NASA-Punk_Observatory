@@ -49,6 +49,39 @@ Planet pages now rely on:
 - `createTopoBackground(...)`
 - `sharedTopoBackground.resize()`
 
+## Fixed-scale particle runtime (2026-09-01)
+
+The shared `ParticleSurface` runtime now gives every body one fixed 320,000-particle static surface:
+
+- 40,000 particles are generated immediately; the remainder arrives in progressive 10,000-particle batches.
+- Positions and colors are written directly into preallocated `Float32Array`s.
+- Static surfaces are not rewritten after generation. Venus, Jupiter, and Sun continuous motion uses shader animation.
+- There are no quality tiers or adaptive counts. Every renderer caps DPR at `Math.min(window.devicePixelRatio, 1.5)`.
+
+## Verification record (2026-09-01)
+
+Automated checks:
+
+- `node --test test/*.test.cjs` — 10 pass.
+- First-party `node --check` — pass.
+- `node tests/lean-check.mjs` — pass.
+- `git diff --check HEAD` — pass.
+
+HTTP real-Chrome acceptance at 1920x1080, DSF1: Sun, Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune all reached 320,000 particles; canvas and telemetry were present; drag and wheel interaction worked; no page errors occurred. Sun alone returned one nonfunctional favicon 404.
+
+Measured FPS:
+
+| Body | FPS |
+| --- | ---: |
+| Sun | 134.13 |
+| Earth | 134.19 |
+| Jupiter | 133.75 |
+| Saturn | 133.99 |
+| Uranus | 133.80 |
+| Neptune | 133.58 |
+
+Screenshots in `C:\Users\Zes\AppData\Local\Temp\observatory-fixed-particle-20260901` were inspected for Sun, Venus, Earth, Jupiter, Saturn, Uranus, and Neptune; body-specific traits remained recognizable after waiting for the curtain. Direct `file://` checks for Earth, Saturn, and Sun all reached 320,000 particles, retained interaction, and had no errors.
+
 ## Safe extraction candidates
 
 These are the best next refactor targets under the non-regression constraint.

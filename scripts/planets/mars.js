@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -19,16 +18,15 @@ const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
 // [CONFIG] 保持拉远的视角以容纳卫星
-let currentZoom    = 30;
 const INITIAL_ZOOM = 30;
-camera.position.z  = currentZoom;
+camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha    : true
 });
 renderer.setSize(displaySize.width, displaySize.height);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 canvasContainer.appendChild(renderer.domElement);
 
 function resizeScene()
@@ -54,8 +52,7 @@ window.addEventListener('resize', () =>
     resizeScene();
 });
 
-const zoomDisplay = document.getElementById('zoom-text-display');
-const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
+const tgtLabel = document.querySelector('.monitor-label.label-bottom');
 
 const group = new THREE.Group();
 scene.add(group);
@@ -85,62 +82,12 @@ let moonsData    = [];
 // --- A. 地表点云 (Surface: Dusty Rock) ---
 function createMarsSurface()
 {
-    const surfaceParticles = 50000;
-    const surfacePos       = [];
-    const surfaceColors    = [];
     const noiseGen         = new SimplexNoise('mars-craters-dust');
 
     const colBase  = new THREE.Color('#94544d');
     const colDark  = new THREE.Color('#6b433c');
     const colLight = new THREE.Color('#d98c6b');
-
-    for (let i = 0; i < surfaceParticles; i++)
-    {
-        const r     = coreRadius;
-        const theta = Math.random() * Math.PI * 2;
-        const phi   = Math.acos(2 * Math.random() - 1);
-
-        let x = r * Math.sin(phi) * Math.cos(theta);
-        let y = r * Math.sin(phi) * Math.sin(theta);
-        let z = r * Math.cos(phi);
-
-        let nBase   = noiseGen.noise3D(x * 0.3, y * 0.3, z * 0.3);
-        let nDetail = noiseGen.noise3D(x * 1.5, y * 1.5, z * 1.5);
-        let nCrater = Math.abs(noiseGen.noise3D(x * 2.5, y * 2.5, z * 2.5));
-
-        const canyonFactor = (x > 0 && y < 0.5 && y > -0.5) ? Math.abs(z / r) : 0;
-
-        const heightMod = nBase * 0.04 + nDetail * 0.02 - nCrater * 0.05 - canyonFactor * 0.03;
-
-        x *= (1 + heightMod / r);
-        y *= (1 + heightMod / r);
-        z *= (1 + heightMod / r);
-
-        surfacePos.push(x, y, z);
-
-        let c   = new THREE.Color();
-        let val = (nBase + 1) / 2;
-
-        if (nCrater > 0.7)
-        {
-            c.copy(colDark);
-        }
-        else if (val > 0.6 || canyonFactor > 0.1)
-        {
-            c.copy(colLight).lerp(colBase, 0.3);
-        }
-        else
-        {
-            c.copy(colBase);
-        }
-
-        c.multiplyScalar(0.9 + Math.random() * 0.2);
-        surfaceColors.push(c.r, c.g, c.b);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(surfacePos, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(surfaceColors, 3));
+    const sampleColor = new THREE.Color();
 
     const mat = new THREE.PointsMaterial({
         size           : 0.055,
@@ -149,7 +96,62 @@ function createMarsSurface()
         opacity        : 0.95,
         sizeAttenuation: true
     });
-    marsSurfaceGroup.add(new THREE.Points(geo, mat));
+
+    ParticleSurface.build({
+        THREE,
+        parent  : marsSurfaceGroup,
+        material: mat,
+        sample(i, positions, colors)
+        {
+            const r     = coreRadius;
+            const theta = Math.random() * Math.PI * 2;
+            const phi   = Math.acos(2 * Math.random() - 1);
+
+            let x = r * Math.sin(phi) * Math.cos(theta);
+            let y = r * Math.sin(phi) * Math.sin(theta);
+            let z = r * Math.cos(phi);
+
+            let nBase   = noiseGen.noise3D(x * 0.3, y * 0.3, z * 0.3);
+            let nDetail = noiseGen.noise3D(x * 1.5, y * 1.5, z * 1.5);
+            let nCrater = Math.abs(noiseGen.noise3D(x * 2.5, y * 2.5, z * 2.5));
+
+            const canyonFactor = (x > 0 && y < 0.5 && y > -0.5) ? Math.abs(z / r) : 0;
+
+            const heightMod = nBase * 0.04 + nDetail * 0.02 - nCrater * 0.05 - canyonFactor * 0.03;
+
+            x *= (1 + heightMod / r);
+            y *= (1 + heightMod / r);
+            z *= (1 + heightMod / r);
+
+            const offset = i * 3;
+            positions[offset]     = x;
+            positions[offset + 1] = y;
+            positions[offset + 2] = z;
+
+            let val = (nBase + 1) / 2;
+            if (nCrater > 0.7)
+            {
+                sampleColor.copy(colDark);
+            }
+            else if (val > 0.6 || canyonFactor > 0.1)
+            {
+                sampleColor.copy(colLight).lerp(colBase, 0.3);
+            }
+            else
+            {
+                sampleColor.copy(colBase);
+            }
+
+            sampleColor.multiplyScalar(0.9 + Math.random() * 0.2);
+            colors[offset]     = sampleColor.r;
+            colors[offset + 1] = sampleColor.g;
+            colors[offset + 2] = sampleColor.b;
+        },
+        onError(error)
+        {
+            console.error('[Mars] surface generation stopped', error);
+        }
+    });
 
     // 测量网格
     const wireGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(coreRadius + 0.02, 24, 12));
@@ -388,7 +390,7 @@ function animate()
         }
     });
 
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
+    updateInteraction(group, camera);
     updatePlanetTelemetry(marsSurfaceGroup, tgtLabel, 1);
 
     renderer.render(scene, camera);

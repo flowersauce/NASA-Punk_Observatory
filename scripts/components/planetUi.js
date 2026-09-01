@@ -79,13 +79,14 @@
 
     function renderPlanetUI(planetName)
     {
-        const cfg  = PLANET_UI_CONFIG[planetName];
-        const root = document.getElementById('planet-ui-root');
-        if (!cfg || !root)
+        const baseConfig = PLANET_DOCK_CONFIG[planetName];
+        const root       = document.getElementById('planet-ui-root');
+        if (!baseConfig || !root)
         {
             return;
         }
 
+        const cfg      = Object.assign({active: planetName}, baseConfig);
         root.innerHTML = buildPlanetLayout(cfg);
         const monitor  = root.querySelector('.system-monitor-container');
         if (monitor)
@@ -105,6 +106,5 @@
         }
     }
 
-    global.buildPlanetLayout = buildPlanetLayout;
-    global.renderPlanetUI    = renderPlanetUI;
+    global.renderPlanetUI = renderPlanetUI;
 })(window);

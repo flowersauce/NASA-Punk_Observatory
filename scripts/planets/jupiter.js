@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 800
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -18,16 +17,15 @@ const displaySize     = DisplayArea.getSize(canvasContainer);
 const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
-let currentZoom    = 38;
 const INITIAL_ZOOM = 38;
-camera.position.z  = currentZoom;
+camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha    : true
 });
 renderer.setSize(displaySize.width, displaySize.height);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 canvasContainer.appendChild(renderer.domElement);
 
 function resizeScene()
@@ -54,8 +52,7 @@ window.addEventListener('resize', () =>
 });
 
 // [CHANGED] ID 变更为 zoom-text-display 以匹配 earth.html 的逻辑
-const zoomDisplay = document.getElementById('zoom-text-display');
-const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
+const tgtLabel = document.querySelector('.monitor-label.label-bottom');
 
 // 场景层级结构
 const group = new THREE.Group();
@@ -94,88 +91,12 @@ function createJupiter()
     // ==========================================
     // Layer 1: 底层对流层
     // ==========================================
-    const particleCount = 45000;
-    const positions     = [];
-    const colors        = [];
-
     const colZoneLight = new THREE.Color('#f0e2c2'); // 氨冰白
     const colZoneDark  = new THREE.Color('#d6c7a5'); // 奶油基底
     const colBeltBase  = new THREE.Color('#c28266'); // 浅赭石
     const colBeltDeep  = new THREE.Color('#8a3f2d'); // 氧化铁红
     const colPolar     = new THREE.Color('#787878'); // 极地灰
-
-    for (let i = 0; i < particleCount; i++)
-    {
-        // 随机厚度: 6.45 ~ 6.55
-        const r = 6.45 + Math.random() * 0.1;
-
-        const theta = Math.random() * Math.PI * 2;
-        const phi   = Math.acos(2 * Math.random() - 1);
-
-        const x = r * Math.sin(phi) * Math.cos(theta);
-        const y = r * Math.sin(phi) * Math.sin(theta);
-        const z = r * Math.cos(phi);
-
-        positions.push(x, y, z);
-
-        // --- 纹理生成 ---
-        let lat          = y / 6.5;
-        // 非线性拉伸：赤道宽，极地密
-        let latNonLinear = Math.sign(lat) * Math.pow(Math.abs(lat), 1.4);
-
-        // 纬向拉伸噪波
-        let noiseBase = noiseGen.noise3D(x * 1.0, y * 0.3, z * 1.0);
-        // 复合信号波
-        let signal    = Math.sin(latNonLinear * 12.0 + noiseBase * 1.2);
-
-        let c    = new THREE.Color();
-        let dist = Math.abs(lat);
-
-        if (dist > 0.85)
-        {
-            // 极地
-            c.copy(colZoneDark).lerp(colPolar, (dist - 0.85) * 4.0);
-            c.multiplyScalar(0.9 + Math.random() * 0.2);
-        }
-        else
-        {
-            // 条纹
-            if (signal > 0.1)
-            {
-                // Zones (亮带)
-                let brightness = (dist < 0.15) ? 1.0 : signal;
-                c.copy(colZoneDark).lerp(colZoneLight, brightness * 0.8);
-                if (noiseBase > 0.6)
-                {
-                    c.lerp(colBeltBase, 0.15);
-                }
-            }
-            else
-            {
-                // Belts (暗带)
-                let depth = Math.abs(signal);
-                // 强化主暗带 (NEB/SEB)
-                if (dist > 0.15 && dist < 0.45)
-                {
-                    c.copy(colBeltBase).lerp(colBeltDeep, depth * 0.8 + 0.2);
-                }
-                else
-                {
-                    c.copy(colBeltBase).lerp(colBeltDeep, depth * 0.5);
-                }
-            }
-        }
-
-        // 模拟 AO (环境光遮蔽)，底部粒子更暗
-        let depthFactor = (r - 6.45) / 0.1; // 0(底) ~ 1(顶)
-        c.multiplyScalar(0.8 + depthFactor * 0.4);
-
-        colors.push(c.r, c.g, c.b);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const sampleColor  = new THREE.Color();
 
     const mat = new THREE.PointsMaterial({
         size           : 0.07,
@@ -185,8 +106,87 @@ function createJupiter()
         sizeAttenuation: true
     });
 
-    jupiterSurface = new THREE.Points(geo, mat);
-    jupiterSpinGroup.add(jupiterSurface);
+    const surface = ParticleSurface.build({
+        THREE,
+        parent  : jupiterSpinGroup,
+        material: mat,
+        sample(i, positions, colors)
+        {
+            // 随机厚度: 6.45 ~ 6.55
+            const r = 6.45 + Math.random() * 0.1;
+
+            const theta = Math.random() * Math.PI * 2;
+            const phi   = Math.acos(2 * Math.random() - 1);
+
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+            const offset = i * 3;
+            positions[offset]     = x;
+            positions[offset + 1] = y;
+            positions[offset + 2] = z;
+
+            // --- 纹理生成 ---
+            const lat          = y / 6.5;
+            // 非线性拉伸：赤道宽，极地密
+            const latNonLinear = Math.sign(lat) * Math.pow(Math.abs(lat), 1.4);
+
+            // 纬向拉伸噪波
+            const noiseBase = noiseGen.noise3D(x * 1.0, y * 0.3, z * 1.0);
+            // 复合信号波
+            const signal    = Math.sin(latNonLinear * 12.0 + noiseBase * 1.2);
+
+            const dist = Math.abs(lat);
+
+            if (dist > 0.85)
+            {
+                // 极地
+                sampleColor.copy(colZoneDark).lerp(colPolar, (dist - 0.85) * 4.0);
+                sampleColor.multiplyScalar(0.9 + Math.random() * 0.2);
+            }
+            else
+            {
+                // 条纹
+                if (signal > 0.1)
+                {
+                    // Zones (亮带)
+                    const brightness = (dist < 0.15) ? 1.0 : signal;
+                    sampleColor.copy(colZoneDark).lerp(colZoneLight, brightness * 0.8);
+                    if (noiseBase > 0.6)
+                    {
+                        sampleColor.lerp(colBeltBase, 0.15);
+                    }
+                }
+                else
+                {
+                    // Belts (暗带)
+                    const depth = Math.abs(signal);
+                    // 强化主暗带 (NEB/SEB)
+                    if (dist > 0.15 && dist < 0.45)
+                    {
+                        sampleColor.copy(colBeltBase).lerp(colBeltDeep, depth * 0.8 + 0.2);
+                    }
+                    else
+                    {
+                        sampleColor.copy(colBeltBase).lerp(colBeltDeep, depth * 0.5);
+                    }
+                }
+            }
+
+            // 模拟 AO (环境光遮蔽)，底部粒子更暗
+            const depthFactor = (r - 6.45) / 0.1; // 0(底) ~ 1(顶)
+            sampleColor.multiplyScalar(0.8 + depthFactor * 0.4);
+
+            colors[offset]     = sampleColor.r;
+            colors[offset + 1] = sampleColor.g;
+            colors[offset + 2] = sampleColor.b;
+        },
+        onError(error)
+        {
+            console.error('[Jupiter] surface generation stopped', error);
+        }
+    });
+    jupiterSurface = surface.points;
 
     // ==========================================
     // Layer 2: 平流层薄雾
@@ -251,6 +251,9 @@ createJupiter();
 
 // --- PART 4: 独立动态大红斑 ---
 let redSpotMesh;
+const redSpotUniforms = {
+    uTime: {value: 0}
+};
 
 function createGreatRedSpot()
 {
@@ -259,7 +262,6 @@ function createGreatRedSpot()
     const particleCount = 3500;
     const positions     = [];
     const colors        = [];
-    const particlesData = [];
     const noiseGen      = new SimplexNoise('grs-vortex-final');
 
     const colCore  = new THREE.Color('#8a3f2d');
@@ -324,35 +326,58 @@ function createGreatRedSpot()
 
         colors.push(c.r, c.g, c.b);
 
-        particlesData.push({
-            dist   : dist,
-            angle  : angle,
-            speed  : (1.0 - dist) * 0.02 + 0.005,
-            baseLat: spotLat,
-            baseLon: spotLon,
-            width  : width,
-            height : height,
-            rBase  : radiusBase
-        });
     }
 
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-    const mat = new THREE.PointsMaterial({
-        size           : 0.05,
-        vertexColors   : true,
-        transparent    : true,
-        opacity        : 0.9,
-        sizeAttenuation: true,
-        blending       : THREE.NormalBlending
+    const spotCenter = {
+        x: radiusBase * Math.cos(spotLat) * Math.sin(spotLon),
+        y: radiusBase * Math.sin(spotLat),
+        z: radiusBase * Math.cos(spotLat) * Math.cos(spotLon)
+    };
+    const mat = new THREE.ShaderMaterial({
+        uniforms: redSpotUniforms,
+        vertexShader: `
+            uniform float uTime;
+            attribute vec3 color;
+            varying vec3 vColor;
+
+            void main() {
+                vColor = color;
+                vec3 center = vec3(${spotCenter.x}, ${spotCenter.y}, ${spotCenter.z});
+                vec3 offset = position - center;
+                float radialDistance = clamp(length(offset.xy) / 1.7, 0.0, 1.0);
+                float speed = mix(0.025, 0.005, radialDistance);
+                float angle = uTime * speed * 60.0;
+                float c = cos(angle);
+                float s = sin(angle);
+                vec3 rotated = center + vec3(
+                    offset.x * c - offset.y * s,
+                    offset.x * s + offset.y * c,
+                    offset.z
+                );
+                vec4 mvPosition = modelViewMatrix * vec4(rotated, 1.0);
+                gl_PointSize = 2.0 * (24.0 / -mvPosition.z);
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `,
+        fragmentShader: `
+            varying vec3 vColor;
+
+            void main() {
+                vec2 point = gl_PointCoord - vec2(0.5);
+                float pointDistance = length(point);
+                float alpha = smoothstep(0.5, 0.12, pointDistance) * 0.9;
+                gl_FragColor = vec4(vColor, alpha);
+            }
+        `,
+        transparent: true,
+        depthWrite : false
     });
 
     redSpotMesh          = new THREE.Points(geo, mat);
-    redSpotMesh.userData = {
-        particles: particlesData
-    };
     redSpotGroup.add(redSpotMesh);
 }
 
@@ -634,6 +659,7 @@ function animate()
         redSpotGroup.rotation.y -= 0.0004;
         redSpotGroup.rotation.x = Math.sin(time * 0.5) * 0.002;
     }
+    redSpotUniforms.uTime.value = time;
 
     // 3. 卫星公转
     moons.forEach(sat =>
@@ -653,41 +679,10 @@ function animate()
         }
     });
 
-    // 4. 大红斑内部流体
-    if (redSpotMesh)
-    {
-        const positions = redSpotMesh.geometry.attributes.position.array;
-        const data      = redSpotMesh.userData.particles;
+    // 4. 视角和缩放控制 (调用抽象模块)
+    updateInteraction(group, camera);
 
-        for (let i = 0; i < data.length; i++)
-        {
-            const p = data[i];
-
-            p.angle += p.speed;
-
-            const dLat     = Math.sin(p.angle) * p.dist * 0.22 * p.height;
-            const dLon     = Math.cos(p.angle) * p.dist * 0.22 * p.width;
-            const finalLat = p.baseLat + dLat;
-            const finalLon = p.baseLon + dLon;
-
-            const heightOffset = Math.cos(p.dist * Math.PI / 2) * 0.06 + Math.sin(time * 2.0 + p.dist * 5.0) * 0.002;
-            const r            = p.rBase + heightOffset;
-
-            const x = r * Math.cos(finalLat) * Math.sin(finalLon);
-            const y = r * Math.sin(finalLat);
-            const z = r * Math.cos(finalLat) * Math.cos(finalLon);
-
-            positions[i * 3]     = x;
-            positions[i * 3 + 1] = y;
-            positions[i * 3 + 2] = z;
-        }
-        redSpotMesh.geometry.attributes.position.needsUpdate = true;
-    }
-
-    // 5. 视角和缩放控制 (调用抽象模块)
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
-
-    // 6. 遥测数据更新 (调用抽象模块)
+    // 5. 遥测数据更新 (调用抽象模块)
     updatePlanetTelemetry(jupiterSpinGroup, tgtLabel, 1);
 
     renderer.render(scene, camera);

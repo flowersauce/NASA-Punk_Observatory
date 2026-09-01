@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -24,7 +23,7 @@ camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
 renderer.setSize(displaySize.width, displaySize.height);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 canvasContainer.appendChild(renderer.domElement);
 
 function resizeScene()
@@ -79,76 +78,88 @@ group.add(moonSystemGroup);
 // --- A. 程序化地球 ---
 function createEarth()
 {
-    // [建议] 稍微增加粒子数以应对体积膨胀带来的稀疏感
-    const landParticles = 60000;
-    const landPos       = [];
-    const landColors    = [];
     const noiseGen      = new SimplexNoise('seed-terra-firma-v2');
 
     const colLandBase = new THREE.Color('#3e6b48');
     const colLandHigh = new THREE.Color('#9abf8a');
     const colOcean    = new THREE.Color('#1a2b4a');
     const colPeak     = new THREE.Color('#ffffff');
+    const sampleColor = new THREE.Color();
 
-    for (let i = 0; i < landParticles; i++)
-    {
-        const rBase = 5.0;
-        const theta = Math.random() * Math.PI * 2;
-        const phi   = Math.acos(2 * Math.random() - 1);
-
-        // 原始球面坐标
-        let x = rBase * Math.sin(phi) * Math.cos(theta);
-        let y = rBase * Math.sin(phi) * Math.sin(theta);
-        let z = rBase * Math.cos(phi);
-
-        let n = 0;
-        n += noiseGen.noise3D(x * 0.15, y * 0.15, z * 0.15) * 1.2;
-        n += noiseGen.noise3D(x * 0.6, y * 0.6, z * 0.6) * 0.25;
-
-        if (n > 0.1)
-        {
-            // 1. 高度因子 (0.0 ~ 1.2 左右)
-            let h = (n - 0.1) * 1.2;
-
-            // [修正] 极微小的隆起系数
-            // 云层起始高度是 0.2 (即 5.2)
-            // 我们将最大隆起控制在 0.07 左右 (即 5.07)，保留明显的大气间隙
-            // 这样既能让点云产生"质感"和"厚度"，又不会破坏球体的完美轮廓
-            const reliefScale = 0.06;
-
-            // 2. 计算微调后的半径
-            const rMod = rBase + (Math.max(0, h) * reliefScale);
-
-            // 3. 缩放坐标
-            const scale = rMod / rBase;
-            landPos.push(x * scale, y * scale, z * scale);
-
-            // 颜色逻辑保持不变...
-            let c = new THREE.Color();
-            if (h < 0.5)
-            {
-                c.copy(colLandBase).lerp(colLandHigh, h / 0.5);
-            }
-            else
-            {
-                c.copy(colLandHigh).lerp(colPeak, Math.min(1, (h - 0.5) * 2.0));
-            }
-            landColors.push(c.r, c.g, c.b);
-        }
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(landPos, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(landColors, 3));
-
-    // [建议] 稍微调小 size，配合高密度粒子，看起来更像细腻的沙盘
     const mat = new THREE.PointsMaterial({
         size        : 0.045,
         vertexColors: true,
         transparent : true,
         opacity     : 0.9
     });
-    earthSystemGroup.add(new THREE.Points(geo, mat));
+
+    ParticleSurface.build({
+        THREE,
+        parent  : earthSystemGroup,
+        material: mat,
+        sample(i, positions, colors)
+        {
+            const rBase = 5.0;
+            const theta = Math.random() * Math.PI * 2;
+            const phi   = Math.acos(2 * Math.random() - 1);
+
+            // 原始球面坐标
+            let x = rBase * Math.sin(phi) * Math.cos(theta);
+            let y = rBase * Math.sin(phi) * Math.sin(theta);
+            let z = rBase * Math.cos(phi);
+
+            let n = 0;
+            n += noiseGen.noise3D(x * 0.15, y * 0.15, z * 0.15) * 1.2;
+            n += noiseGen.noise3D(x * 0.6, y * 0.6, z * 0.6) * 0.25;
+
+            let h = 0;
+            if (n > 0.1)
+            {
+                // 1. 高度因子 (0.0 ~ 1.2 左右)
+                h = (n - 0.1) * 1.2;
+
+                // [修正] 极微小的隆起系数
+                // 云层起始高度是 0.2 (即 5.2)
+                // 我们将最大隆起控制在 0.07 左右 (即 5.07)，保留明显的大气间隙
+                // 这样既能让点云产生"质感"和"厚度"，又不会破坏球体的完美轮廓
+                const reliefScale = 0.06;
+
+                // 2. 计算微调后的半径
+                const rMod = rBase + (Math.max(0, h) * reliefScale);
+
+                // 3. 缩放坐标
+                const scale = rMod / rBase;
+                x *= scale;
+                y *= scale;
+                z *= scale;
+            }
+
+            const offset = i * 3;
+            positions[offset]     = x;
+            positions[offset + 1] = y;
+            positions[offset + 2] = z;
+
+            if (n <= 0.1)
+            {
+                sampleColor.copy(colOcean);
+            }
+            else if (h < 0.5)
+            {
+                sampleColor.copy(colLandBase).lerp(colLandHigh, h / 0.5);
+            }
+            else
+            {
+                sampleColor.copy(colLandHigh).lerp(colPeak, Math.min(1, (h - 0.5) * 2.0));
+            }
+            colors[offset]     = sampleColor.r;
+            colors[offset + 1] = sampleColor.g;
+            colors[offset + 2] = sampleColor.b;
+        },
+        onError(error)
+        {
+            console.error('[Earth] surface generation stopped', error);
+        }
+    });
 
     // 地球网格 (基准参考面)
     const wireGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(5.0, 24, 24));

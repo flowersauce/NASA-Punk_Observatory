@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 100
 });
-sharedTopoBackground.resize();
 
 
 // ==========================================
@@ -18,16 +17,15 @@ const displaySize     = DisplayArea.getSize(canvasContainer);
 const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
-let currentZoom    = 28;
 const INITIAL_ZOOM = 28;
-camera.position.z  = currentZoom;
+camera.position.z  = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha    : true
 });
 renderer.setSize(displaySize.width, displaySize.height);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 canvasContainer.appendChild(renderer.domElement);
 
 function resizeScene()
@@ -53,8 +51,7 @@ window.addEventListener('resize', () =>
     resizeScene();
 });
 
-const zoomDisplay = document.getElementById('zoom-text-display');
-const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
+const tgtLabel = document.querySelector('.monitor-label.label-bottom');
 
 const group = new THREE.Group();
 scene.add(group);
@@ -73,58 +70,12 @@ planetTiltGroup.add(tailGroup);
 // --- PART 3: 水星本体 ---
 function createMercury()
 {
-    const noiseGen      = new SimplexNoise('mercury-surface');
-    const particleCount = 45000;
-    const positions     = [];
-    const colors        = [];
+    const noiseGen = new SimplexNoise('mercury-surface');
 
     const colBase  = new THREE.Color('#999999');
     const colDark  = new THREE.Color('#555555');
     const colLight = new THREE.Color('#cccccc');
-
-    for (let i = 0; i < particleCount; i++)
-    {
-        let r       = 5.0;
-        const theta = Math.random() * Math.PI * 2;
-        const phi   = Math.acos(2 * Math.random() - 1);
-
-        let x = r * Math.sin(phi) * Math.cos(theta);
-        let y = r * Math.sin(phi) * Math.sin(theta);
-        let z = r * Math.cos(phi);
-
-        let nBase   = noiseGen.noise3D(x * 0.4, y * 0.4, z * 0.4);
-        let nCrater = Math.abs(noiseGen.noise3D(x * 2.0, y * 2.0, z * 2.0));
-        nCrater     = 1.0 - Math.pow(nCrater, 1.2);
-
-        r += nBase * 0.06;
-        r -= nCrater * 0.08;
-
-        x = r * Math.sin(phi) * Math.cos(theta);
-        y = r * Math.sin(phi) * Math.sin(theta);
-        z = r * Math.cos(phi);
-
-        positions.push(x, y, z);
-
-        let c = new THREE.Color();
-        if (nCrater > 0.6)
-        {
-            c.copy(colDark).multiplyScalar(0.8);
-        }
-        else if (nBase > 0.2)
-        {
-            c.copy(colLight).lerp(colBase, 0.3);
-        }
-        else
-        {
-            c.copy(colBase);
-        }
-        c.multiplyScalar(0.9 + Math.random() * 0.2);
-        colors.push(c.r, c.g, c.b);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const sampleColor = new THREE.Color();
 
     const mat = new THREE.PointsMaterial({
         size           : 0.05,
@@ -134,8 +85,58 @@ function createMercury()
         sizeAttenuation: true
     });
 
-    const planet = new THREE.Points(geo, mat);
-    planetSpinGroup.add(planet);
+    ParticleSurface.build({
+        THREE,
+        parent  : planetSpinGroup,
+        material: mat,
+        sample(i, positions, colors)
+        {
+            let r       = 5.0;
+            const theta = Math.random() * Math.PI * 2;
+            const phi   = Math.acos(2 * Math.random() - 1);
+
+            let x = r * Math.sin(phi) * Math.cos(theta);
+            let y = r * Math.sin(phi) * Math.sin(theta);
+            let z = r * Math.cos(phi);
+
+            let nBase   = noiseGen.noise3D(x * 0.4, y * 0.4, z * 0.4);
+            let nCrater = Math.abs(noiseGen.noise3D(x * 2.0, y * 2.0, z * 2.0));
+            nCrater     = 1.0 - Math.pow(nCrater, 1.2);
+
+            r += nBase * 0.06;
+            r -= nCrater * 0.08;
+
+            x = r * Math.sin(phi) * Math.cos(theta);
+            y = r * Math.sin(phi) * Math.sin(theta);
+            z = r * Math.cos(phi);
+
+            const offset = i * 3;
+            positions[offset]     = x;
+            positions[offset + 1] = y;
+            positions[offset + 2] = z;
+
+            if (nCrater > 0.6)
+            {
+                sampleColor.copy(colDark).multiplyScalar(0.8);
+            }
+            else if (nBase > 0.2)
+            {
+                sampleColor.copy(colLight).lerp(colBase, 0.3);
+            }
+            else
+            {
+                sampleColor.copy(colBase);
+            }
+            sampleColor.multiplyScalar(0.9 + Math.random() * 0.2);
+            colors[offset]     = sampleColor.r;
+            colors[offset + 1] = sampleColor.g;
+            colors[offset + 2] = sampleColor.b;
+        },
+        onError(error)
+        {
+            console.error('[Mercury] surface generation stopped', error);
+        }
+    });
 
     // 测量网格
     const wireGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(5.02, 24, 12));
@@ -311,7 +312,7 @@ function animate()
 
     updateSodiumTail();
 
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
+    updateInteraction(group, camera);
     updatePlanetTelemetry(planetSpinGroup, tgtLabel, 1);
 
     renderer.render(scene, camera);

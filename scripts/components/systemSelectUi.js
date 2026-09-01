@@ -39,6 +39,5 @@
         `;
     }
 
-    global.renderSystemSelectUI   = renderSystemSelectUI;
-    global.buildSystemSelectStage = buildSystemSelectStage;
+    global.renderSystemSelectUI = renderSystemSelectUI;
 })(window);

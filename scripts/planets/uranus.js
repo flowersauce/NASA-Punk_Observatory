@@ -7,7 +7,6 @@ const sharedTopoBackground = createTopoBackground({
     canvasId   : 'topo-canvas',
     noiseOffset: 800
 });
-sharedTopoBackground.resize();
 
 
 // --- PART 2: Three.js 场景 ---
@@ -16,17 +15,16 @@ const displaySize     = DisplayArea.getSize(canvasContainer);
 const scene           = new THREE.Scene();
 const camera          = new THREE.PerspectiveCamera(35, displaySize.width / displaySize.height, 0.1, 1000);
 
-let currentZoom    = 38;
 const INITIAL_ZOOM = 38;
 
-camera.position.z = currentZoom;
+camera.position.z = INITIAL_ZOOM;
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha    : true
 });
 renderer.setSize(displaySize.width, displaySize.height);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 canvasContainer.appendChild(renderer.domElement);
 
 function resizeScene()
@@ -52,8 +50,7 @@ window.addEventListener('resize', () =>
     resizeScene();
 });
 
-const zoomDisplay = document.getElementById('zoom-text-display');
-const tgtLabel    = document.querySelector('.monitor-label.label-bottom');
+const tgtLabel = document.querySelector('.monitor-label.label-bottom');
 
 const group = new THREE.Group();
 scene.add(group);
@@ -75,50 +72,12 @@ uranusTiltGroup.add(moonGroup);
 // --- PART 3: 天王星主体 ---
 function createUranus()
 {
-    const particleCount = 35000;
-    const positions     = [];
-    const colors        = [];
     const noiseGen      = new SimplexNoise('uranus-base');
 
     const colBase = new THREE.Color('#a4d8e6');
     const colDeep = new THREE.Color('#4a9cb8');
     const colHigh = new THREE.Color('#e0ffff');
-
-    for (let i = 0; i < particleCount; i++)
-    {
-        const r = 5.0;
-
-        const theta = Math.random() * Math.PI * 2;
-        const phi   = Math.acos(2 * Math.random() - 1);
-
-        const x = r * Math.sin(phi) * Math.cos(theta);
-        const y = r * Math.sin(phi) * Math.sin(theta);
-        const z = r * Math.cos(phi);
-
-        positions.push(x, y, z);
-
-        let lat = Math.abs(y / r);
-        let c   = new THREE.Color();
-
-        c.copy(colDeep).lerp(colBase, lat * 0.8 + 0.2);
-
-        if (lat > 0.8)
-        {
-            c.lerp(colHigh, (lat - 0.8) * 3.0);
-        }
-
-        let bandNoise = noiseGen.noise3D(x, y * 4.0, z);
-        if (Math.abs(bandNoise) > 0.6)
-        {
-            c.multiplyScalar(1.05);
-        }
-
-        colors.push(c.r, c.g, c.b);
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const sampleColor = new THREE.Color();
 
     const mat = new THREE.PointsMaterial({
         size        : 0.06,
@@ -127,8 +86,50 @@ function createUranus()
         opacity     : 0.9
     });
 
-    const planet = new THREE.Points(geo, mat);
-    uranusSpinGroup.add(planet);
+    ParticleSurface.build({
+        THREE,
+        parent  : uranusSpinGroup,
+        material: mat,
+        sample(i, positions, colors)
+        {
+            const r = 5.0;
+
+            const theta = Math.random() * Math.PI * 2;
+            const phi   = Math.acos(2 * Math.random() - 1);
+
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+            const offset = i * 3;
+
+            positions[offset]     = x;
+            positions[offset + 1] = y;
+            positions[offset + 2] = z;
+
+            const lat = Math.abs(y / r);
+
+            sampleColor.copy(colDeep).lerp(colBase, lat * 0.8 + 0.2);
+
+            if (lat > 0.8)
+            {
+                sampleColor.lerp(colHigh, (lat - 0.8) * 3.0);
+            }
+
+            const bandNoise = noiseGen.noise3D(x, y * 4.0, z);
+            if (Math.abs(bandNoise) > 0.6)
+            {
+                sampleColor.multiplyScalar(1.05);
+            }
+
+            colors[offset]     = sampleColor.r;
+            colors[offset + 1] = sampleColor.g;
+            colors[offset + 2] = sampleColor.b;
+        },
+        onError(error)
+        {
+            console.error('[Uranus] surface generation stopped', error);
+        }
+    });
 
     const atmosGeo = new THREE.BufferGeometry();
     const atmosPos = [];
@@ -568,7 +569,7 @@ function animate()
     });
 
     // 2. 更新交互状态 (调用抽象模块)
-    currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
+    updateInteraction(group, camera);
 
     // 3. 更新遥测数据 (调用抽象模块，启用 Dec 翻转)
     // 启用 Dec 翻转，以匹配 IAU 定义的北极方向和 Dec 读数。
