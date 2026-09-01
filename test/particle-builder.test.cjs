@@ -48,6 +48,9 @@ test('frame sampler reduces dynamic cadence before static draw count', () => {
         sampleSize: 4
     });
 
+    assert.equal(sampler.ready, false);
+    sampler.setBuiltCount(1_000_000);
+    api.markReady({page: 'test'});
     [0, 40, 80, 120, 160].forEach((time) => sampler.sample(time));
     assert.equal(sampler.profile, 'high');
     assert.equal(sampler.dynamicStride, 2);
@@ -57,6 +60,55 @@ test('frame sampler reduces dynamic cadence before static draw count', () => {
     [337, 354, 371, 388].forEach((time) => sampler.sample(time));
     assert.equal(sampler.profile, 'recovery');
     assert.deepEqual(strides, [2]);
+});
+
+test('frame sampler lowers balanced and low profiles, clamps to built count, and filters pauses', () => {
+    const {api} = loadBuilder();
+    const draws = [];
+    const sampler = api.createFrameSampler({
+        geometry: {setDrawRange: (start, count) => draws.push([start, count])},
+        maxCount: 1_000_000,
+        setDynamicStride: () => {},
+        sampleSize: 2
+    });
+
+    sampler.setBuiltCount(100_000);
+    sampler.sample(0);
+    sampler.sample(40);
+    assert.equal(sampler.profile, 'high', 'pre-ready samples do not accumulate');
+    assert.equal(sampler.dynamicStride, 1, 'pre-ready samples do not reduce cadence');
+    api.markReady({page: 'test'});
+
+    [0, 22, 44].forEach((time) => sampler.sample(time));
+    assert.equal(sampler.dynamicStride, 2);
+    assert.equal(sampler.profile, 'high');
+    [66, 88].forEach((time) => sampler.sample(time));
+    assert.equal(sampler.profile, 'balanced');
+    assert.deepEqual(draws.at(-1), [0, 100_000], 'balanced profile clamps to built count');
+
+    sampler.setBuiltCount(900_000);
+    assert.deepEqual(draws.at(-1), [0, 750_000]);
+    [118, 148].forEach((time) => sampler.sample(time));
+    assert.equal(sampler.profile, 'low');
+    assert.deepEqual(draws.at(-1), [0, 500_000]);
+    [188, 228].forEach((time) => sampler.sample(time));
+    assert.equal(sampler.profile, 'recovery');
+    assert.deepEqual(draws.at(-1), [0, 250_000]);
+    [245, 285].forEach((time) => sampler.sample(time));
+    assert.equal(sampler.profile, 'recovery');
+    assert.deepEqual(draws.at(-1), [0, 250_000], 'recovery does not rise');
+
+    const paused = loadBuilder();
+    const pausedSampler = paused.api.createFrameSampler({
+        geometry: {setDrawRange() {}},
+        maxCount: 1_000_000,
+        setDynamicStride: () => {},
+        sampleSize: 2
+    });
+    paused.api.markReady({page: 'test'});
+    [0, 1000, 1016, 1032].forEach((time) => pausedSampler.sample(time));
+    assert.equal(pausedSampler.dynamicStride, 1, 'background pause is discarded');
+    assert.equal(pausedSampler.profile, 'high', 'background pause does not trigger downgrade');
 });
 
 test('allocate falls through to the first feasible count', () => {
@@ -293,7 +345,16 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         constructor(array, itemSize) {
             this.array = array;
             this.itemSize = itemSize;
-            this.needsUpdate = false;
+            this._needsUpdate = false;
+            this.needsUpdateWrites = 0;
+            Object.defineProperty(this, 'needsUpdate', {
+                enumerable: true,
+                get: () => this._needsUpdate,
+                set: (value) => {
+                    this._needsUpdate = value;
+                    if (value) this.needsUpdateWrites++;
+                }
+            });
             this.updateRanges = [];
             this._updateRange = {offset: 0, count: -1};
             Object.defineProperty(this, 'updateRange', {
@@ -768,6 +829,7 @@ test('every planet runtime samples profile state in its existing animation loop'
         const env = loadPlanetRuntime(planetName);
         assert.equal(env.samplers.length, 1, `${planetName} sampler count`);
         const sampler = env.samplers[0].sampler;
+        assert.equal(sampler.ready, false, `${planetName} sampler waits for readiness`);
         const sampled = [];
         const sample = sampler.sample;
         sampler.sample = (time) => {
@@ -782,7 +844,33 @@ test('every planet runtime samples profile state in its existing animation loop'
 
         tick(16);
         assert.deepEqual(sampled, [16], `${planetName} frame sample`);
+        assert.equal(sampler.ready, false, `${planetName} sampler remains gated`);
+        env.driveBuild();
+        assert.equal(sampler.ready, true, `${planetName} sampler unlocks after readiness render`);
     }
+});
+
+test('mercury skips dynamic attribute work on stride frames', () => {
+    const env = loadPlanetRuntime('mercury');
+    const sampler = env.samplers[0].sampler;
+    const tail = env.points.find((point) => point.geometry.attributes.size);
+    const position = tail.geometry.attributes.position;
+    env.driveBuild();
+    assert.equal(sampler.ready, true);
+
+    const tick = (time) => {
+        const callback = env.animationCallbacks.shift();
+        assert.equal(typeof callback, 'function');
+        callback(time);
+    };
+    for (let i = 0; i <= 120; i++) tick(i * 40);
+    assert.equal(sampler.dynamicStride, 2);
+
+    const beforeSkippedFrame = position.needsUpdateWrites;
+    tick(121 * 40);
+    assert.equal(position.needsUpdateWrites, beforeSkippedFrame, 'odd stride frame leaves tail buffer untouched');
+    tick(122 * 40);
+    assert.equal(position.needsUpdateWrites, beforeSkippedFrame + 1, 'even stride frame updates tail buffer');
 });
 
 test('particle builder reports a batch error without completing', () => {

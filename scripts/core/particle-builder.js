@@ -1,5 +1,6 @@
 (function initParticleBuilder(global) {
     const PROFILE_RATIOS = {high: 1, balanced: 0.75, low: 0.5};
+    const frameSamplers = new Set();
 
     function visibleCount(maxCount, profile) {
         if (profile === 'recovery') return Math.min(maxCount, 250000);
@@ -67,11 +68,28 @@
         const sampleSize = options.sampleSize || 120;
         let profile = 'high';
         let dynamicStride = 1;
+        let builtCount = 0;
+        let ready = false;
         let lastTime = null;
         let deltas = [];
 
+        function applyDrawRange() {
+            options.geometry.setDrawRange(0, Math.min(builtCount, visibleCount(options.maxCount, profile)));
+        }
+
+        function setBuiltCount(count) {
+            builtCount = Math.max(builtCount, Math.min(options.maxCount, count));
+            applyDrawRange();
+        }
+
+        function setReady() {
+            ready = true;
+        }
+
+        frameSamplers.add(setReady);
+
         function sample(timestamp) {
-            if (!Number.isFinite(timestamp)) return;
+            if (!ready || !Number.isFinite(timestamp)) return;
             if (lastTime !== null) {
                 const delta = timestamp - lastTime;
                 if (delta > 0 && delta <= 250) deltas.push(delta);
@@ -92,18 +110,22 @@
             const candidate = fps < 30 ? 'recovery' : fps < 40 ? 'low' : fps < 50 ? 'balanced' : 'high';
             if (order.indexOf(candidate) > order.indexOf(profile)) {
                 profile = candidate;
-                options.geometry.setDrawRange(0, visibleCount(options.maxCount, profile));
+                applyDrawRange();
             }
         }
 
         return {
             sample,
+            setBuiltCount,
+            markReady: setReady,
             get profile() { return profile; },
-            get dynamicStride() { return dynamicStride; }
+            get dynamicStride() { return dynamicStride; },
+            get ready() { return ready; }
         };
     }
 
     function markReady(detail) {
+        frameSamplers.forEach((setReady) => setReady());
         global.dispatchEvent(new CustomEvent('observatory:ready', {detail}));
     }
 

@@ -179,10 +179,7 @@ function createNeptune()
             geo.attributes.position.needsUpdate = true;
             geo.attributes.color.needsUpdate = true;
         },
-        setDrawCount(count)
-        {
-            geo.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
-        },
+        setDrawCount: frameSampler.setBuiltCount,
         onReady()
         {
             renderer.render(scene, camera);

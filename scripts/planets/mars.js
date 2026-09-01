@@ -184,10 +184,7 @@ function createMarsSurface()
             geometry.attributes.position.needsUpdate = true;
             geometry.attributes.color.needsUpdate = true;
         },
-        setDrawCount(count)
-        {
-            geometry.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
-        },
+        setDrawCount: frameSampler.setBuiltCount,
         onReady()
         {
             renderer.render(scene, camera);
