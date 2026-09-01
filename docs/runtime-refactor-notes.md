@@ -163,3 +163,66 @@ A runtime refactor is safe when:
 - Telemetry updates remain attached to the same target group with the same sign behavior.
 - The legacy file becomes shorter because dead duplicate infrastructure was removed, not because planet-specific logic
   was hidden behind an unstable abstraction.
+
+## Million-particle runtime contract
+
+The current planet runtime keeps a preallocated typed-array surface layer and
+uses a smaller dynamic overlay for clouds, storms, coronae, tails, eruptions,
+rings, and satellite motion. `ParticleBuilder.build(...)` fills the surface in
+idle batches (with a `requestAnimationFrame` fallback), updates the geometry
+draw range, reports integer progress, and calls `onReady` after the first
+250,000 particles. `ParticleBuilder.markReady(detail)` dispatches the shared
+`observatory:ready` event consumed by the transition curtain.
+
+Public builder methods:
+
+- `allocate([high, balanced, low, recovery], factory)` selects the first
+  allocatable typed-array tier.
+- `visibleCount(maxCount, profile)` returns the draw count for `high` (100%),
+  `balanced` (75%), `low` (50%), or `recovery` (250,000).
+- `build(options)` returns `cancel()` and accepts `writeBatch`, draw-range,
+  progress, ready, completion, and error callbacks.
+- `createFrameSampler({geometry, maxCount, setDynamicStride})` lowers dynamic
+  update cadence before lowering static draw range; profiles only move down.
+
+Approved high-profile surface budgets and dynamic-layer ceilings:
+
+| Body | Surface | Dynamic |
+| --- | ---: | ---: |
+| Sun | 1,600,000 | 80,000 |
+| Mercury | 1,000,000 | 30,000 |
+| Venus | 1,200,000 | 60,000 |
+| Earth | 1,250,000 | 50,000 |
+| Mars | 1,050,000 | 40,000 |
+| Jupiter | 1,500,000 | 80,000 |
+| Saturn | 1,350,000 | 60,000 |
+| Uranus | 1,200,000 | 40,000 |
+| Neptune | 1,200,000 | 60,000 |
+
+Rings are independent auxiliary geometry. Static surfaces are not updated per
+frame; only dynamic overlays upload changing attributes. When frame sampling
+finds sustained slowdown, the runtime first changes dynamic updates to every
+second frame, then selects `balanced`, `low`, or `recovery`. It never raises a
+profile automatically during the same page session.
+
+## Run and validation
+
+The project remains build-free and works from HTTP or `file://` entry points.
+For repeatable browser checks, run `python -m http.server 4173` from the
+project root and check `http://127.0.0.1:4173/index.html` plus all nine planet
+pages at 1920×1080. Also open `earth.html`, `saturn.html`, and `sun.html`
+directly from Explorer to cover the local-file path.
+
+Automated validation uses only Node's built-ins:
+
+```powershell
+node --test test/*.test.cjs
+Get-ChildItem scripts -Recurse -Filter *.js |
+    Where-Object FullName -notmatch '\\vendor\\' |
+    ForEach-Object { node --check $_.FullName; if ($LASTEXITCODE) { exit $LASTEXITCODE } }
+git diff --check HEAD
+```
+
+Browser acceptance should record the opaque first paint, progressive `0%` to
+`READY` state, readiness event, controls and navigation, console/page errors,
+observed surface draw count, and a fresh 1080p frame sample for each entry.
