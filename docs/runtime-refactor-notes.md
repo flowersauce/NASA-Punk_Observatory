@@ -182,8 +182,16 @@ Public builder methods:
   `balanced` (75%), `low` (50%), or `recovery` (250,000).
 - `build(options)` returns `cancel()` and accepts `writeBatch`, draw-range,
   progress, ready, completion, and error callbacks.
-- `createFrameSampler({geometry, maxCount, setDynamicStride})` lowers dynamic
-  update cadence before lowering static draw range; profiles only move down.
+- `markAttributeRange(attribute, offset, count)` merges pending typed-array
+  upload ranges until Three.js resets the range after a render.
+- `selectInitialProfile(signals)` and
+  `createFrameSampler({geometry, maxCount, setDynamicStride, signals})` use
+  deterministic hardware hints before the first visible draw, then lower
+  dynamic update cadence before lowering static draw range; profiles only move
+  down.
+
+Active builds are cancelled centrally on `observatory:navigate-start` and
+`pagehide`, so planet runtimes do not need per-page unload handlers.
 
 Approved high-profile surface budgets and dynamic-layer ceilings:
 

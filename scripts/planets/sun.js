@@ -177,10 +177,8 @@ function createSunSurface()
             {
                 sampleSunSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
             }
-            sunSurfaceGeometry.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
-            sunSurfaceGeometry.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
-            sunSurfaceGeometry.attributes.position.needsUpdate = true;
-            sunSurfaceGeometry.attributes.color.needsUpdate = true;
+            ParticleBuilder.markAttributeRange(sunSurfaceGeometry.attributes.position, start * 3, (end - start) * 3);
+            ParticleBuilder.markAttributeRange(sunSurfaceGeometry.attributes.color, start * 3, (end - start) * 3);
         },
         setDrawCount: frameSampler.setBuiltCount,
         onReady()

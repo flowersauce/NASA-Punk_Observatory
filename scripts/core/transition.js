@@ -34,7 +34,7 @@
 
     function reveal()
     {
-        if (revealed) return;
+        if (revealed || navigating) return;
         revealed = true;
         const curtain = ensureCurtain();
         curtain.classList.remove('start-covered');
@@ -45,6 +45,7 @@
     {
         if (navigating) return;
         navigating = true;
+        global.dispatchEvent(new CustomEvent('observatory:navigate-start'));
         const curtain = ensureCurtain();
         curtain.classList.remove('curtain-intro', 'start-covered');
         void curtain.offsetWidth;

@@ -5,8 +5,16 @@ const vm = require('node:vm');
 
 function loadBuilder(extra = {}) {
     const events = [];
+    const windowListeners = new Map();
+    const defaultWindow = {
+        addEventListener: (type, callback) => windowListeners.set(type, callback),
+        dispatchEvent: (event) => {
+            events.push(event);
+            windowListeners.get(event.type)?.(event);
+        }
+    };
     const sandbox = {
-        window: {dispatchEvent: (event) => events.push(event)},
+        window: defaultWindow,
         CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init.detail; } },
         performance: {now: () => 0},
         requestAnimationFrame: (callback) => callback(),
@@ -15,7 +23,7 @@ function loadBuilder(extra = {}) {
     };
     sandbox.window.window = sandbox.window;
     vm.runInNewContext(fs.readFileSync('scripts/core/particle-builder.js', 'utf8'), sandbox);
-    return {api: sandbox.window.ParticleBuilder, events};
+    return {api: sandbox.window.ParticleBuilder, events, window: sandbox.window, windowListeners};
 }
 
 test('every HTML entry loads particle-builder before its page runtime', () => {
@@ -35,6 +43,30 @@ test('visibleCount selects approved profile counts', () => {
     assert.equal(api.visibleCount(1_600_000, 'balanced'), 1_200_000);
     assert.equal(api.visibleCount(1_600_000, 'low'), 800_000);
     assert.equal(api.visibleCount(1_600_000, 'recovery'), 250_000);
+});
+
+test('frame sampler selects a deterministic initial profile before the first draw', () => {
+    const {api} = loadBuilder();
+    const cases = [
+        [{hardwareConcurrency: 16, deviceMemory: 16}, 'high', 1_000_000],
+        [{hardwareConcurrency: 4, deviceMemory: 8}, 'balanced', 750_000],
+        [{hardwareConcurrency: 2, deviceMemory: 8}, 'low', 500_000],
+        [{hardwareConcurrency: 1, deviceMemory: 16}, 'recovery', 250_000]
+    ];
+
+    for (const [signals, profile, drawCount] of cases) {
+        assert.equal(api.selectInitialProfile(signals), profile);
+        const draws = [];
+        const sampler = api.createFrameSampler({
+            geometry: {setDrawRange: (start, count) => draws.push([start, count])},
+            maxCount: 1_000_000,
+            setDynamicStride: () => {},
+            signals
+        });
+        assert.equal(sampler.profile, profile);
+        sampler.setBuiltCount(1_000_000);
+        assert.deepEqual(draws.at(-1), [0, drawCount]);
+    }
 });
 
 test('frame sampler reduces dynamic cadence before static draw count', () => {
@@ -166,6 +198,51 @@ test('cancel prevents queued batches from writing', () => {
     job.cancel();
     while (queue.length) queue.shift()();
     assert.equal(writes, 0);
+});
+
+test('markAttributeRange merges pending disjoint and adjacent ranges until upload reset', () => {
+    const {api} = loadBuilder();
+    const attribute = {updateRange: {offset: 0, count: -1}, needsUpdate: false};
+
+    api.markAttributeRange(attribute, 12, 3);
+    api.markAttributeRange(attribute, 0, 3);
+    api.markAttributeRange(attribute, 15, 3);
+    assert.equal(attribute.updateRange.offset, 0);
+    assert.equal(attribute.updateRange.count, 18);
+    assert.equal(attribute.needsUpdate, true);
+
+    attribute.updateRange.count = -1;
+    api.markAttributeRange(attribute, 30, 3);
+    api.markAttributeRange(attribute, 33, 3);
+    assert.equal(attribute.updateRange.offset, 30);
+    assert.equal(attribute.updateRange.count, 6);
+});
+
+test('navigation and pagehide cancel active builds and clear sampler readiness', () => {
+    for (const eventType of ['observatory:navigate-start', 'pagehide']) {
+        const env = loadBuilder();
+        const queue = [];
+        let writes = 0;
+        const sampler = env.api.createFrameSampler({
+            geometry: {setDrawRange() {}},
+            maxCount: 1_000_000,
+            setDynamicStride: () => {}
+        });
+        env.api.build({
+            total: 500_000,
+            readyCount: 250_000,
+            initialBatchSize: 10_000,
+            writeBatch: () => writes++,
+            setDrawCount: () => {},
+            schedule: (callback) => queue.push(callback)
+        });
+
+        env.window.dispatchEvent({type: eventType});
+        while (queue.length) queue.shift()();
+        env.api.markReady({page: 'cancelled'});
+        assert.equal(writes, 0, `${eventType} stops queued writes`);
+        assert.equal(sampler.ready, false, `${eventType} clears stale sampler registry`);
+    }
 });
 
 test('planet config exposes every approved particle budget', () => {

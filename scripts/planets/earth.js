@@ -186,10 +186,8 @@ function createEarth()
             {
                 sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
             }
-            geometry.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
-            geometry.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
-            geometry.attributes.position.needsUpdate = true;
-            geometry.attributes.color.needsUpdate = true;
+            ParticleBuilder.markAttributeRange(geometry.attributes.position, start * 3, (end - start) * 3);
+            ParticleBuilder.markAttributeRange(geometry.attributes.color, start * 3, (end - start) * 3);
         },
         setDrawCount: frameSampler.setBuiltCount,
         onReady()

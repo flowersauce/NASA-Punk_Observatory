@@ -25,7 +25,8 @@ function loadTransition() {
     });
     const window = {
         location,
-        addEventListener: (type, callback) => windowListeners.set(type, callback)
+        addEventListener: (type, callback) => windowListeners.set(type, callback),
+        dispatchEvent: (event) => windowListeners.get(event.type)?.(event)
     };
     const document = {
         body: {appendChild: () => {}},
@@ -42,6 +43,7 @@ function loadTransition() {
             return timers.length;
         },
         requestAnimationFrame: (callback) => callback(),
+        CustomEvent: class { constructor(type, init = {}) { this.type = type; this.detail = init.detail; } },
         console
     };
     vm.runInNewContext(fs.readFileSync('scripts/core/transition.js', 'utf8'), sandbox);
@@ -72,4 +74,12 @@ test('navigation is single-flight and completes on animationend', () => {
     assert.equal(env.location.href, 'earth.html');
     env.timers.forEach((timer) => timer.callback());
     assert.deepEqual(env.navigations, ['earth.html']);
+});
+
+test('ready during exit does not restart the intro animation', () => {
+    const env = loadTransition();
+    env.api.navigate('earth.html');
+    env.windowListeners.get('observatory:ready')();
+    assert.equal(env.curtain.classList.contains('curtain-exit'), true);
+    assert.equal(env.curtain.classList.contains('curtain-intro'), false);
 });

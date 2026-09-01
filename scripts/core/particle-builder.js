@@ -1,10 +1,26 @@
 (function initParticleBuilder(global) {
     const PROFILE_RATIOS = {high: 1, balanced: 0.75, low: 0.5};
+    const activeBuilds = new Set();
     const frameSamplers = new Set();
 
     function visibleCount(maxCount, profile) {
         if (profile === 'recovery') return Math.min(maxCount, 250000);
         return Math.floor(maxCount * (PROFILE_RATIOS[profile] || 1));
+    }
+
+    function signalNumber(value) {
+        const number = Number(value);
+        return Number.isFinite(number) && number > 0 ? number : null;
+    }
+
+    function selectInitialProfile(signals = global.navigator) {
+        const source = signals || {};
+        const cores = signalNumber(source.hardwareConcurrency);
+        const memory = signalNumber(source.deviceMemory);
+        if ((cores !== null && cores <= 1) || (memory !== null && memory <= 1)) return 'recovery';
+        if ((cores !== null && cores <= 2) || (memory !== null && memory <= 2)) return 'low';
+        if ((cores !== null && cores <= 4) || (memory !== null && memory <= 4)) return 'balanced';
+        return 'high';
     }
 
     function allocate(counts, factory) {
@@ -24,6 +40,22 @@
         }
     }
 
+    function markAttributeRange(attribute, offset, count) {
+        if (!attribute || count <= 0) return;
+        const end = offset + count;
+        const pending = attribute.updateRange;
+        if (pending && pending.count >= 0) {
+            const start = Math.min(pending.offset, offset);
+            attribute.updateRange = {
+                offset: start,
+                count: Math.max(pending.offset + pending.count, end) - start
+            };
+        } else {
+            attribute.updateRange = {offset, count};
+        }
+        attribute.needsUpdate = true;
+    }
+
     function build(options) {
         let cursor = 0;
         let cancelled = false;
@@ -32,6 +64,15 @@
         let lastPercent = -1;
         const schedule = options.schedule || defaultSchedule;
         const now = options.now || (() => performance.now());
+        const state = {
+            cancel() {
+                if (cancelled) return;
+                cancelled = true;
+                activeBuilds.delete(state);
+            }
+        };
+
+        activeBuilds.add(state);
 
         function run() {
             if (cancelled) return;
@@ -39,6 +80,7 @@
             const end = Math.min(options.total, cursor + batchSize);
             try {
                 options.writeBatch(cursor, end);
+                if (cancelled) return;
                 cursor = end;
                 options.setDrawCount(cursor);
                 if (!readySent && cursor >= (options.readyCount || 250000)) {
@@ -51,22 +93,33 @@
                     if (options.onProgress) options.onProgress(percent);
                 }
             } catch (error) {
+                activeBuilds.delete(state);
                 if (options.onError) options.onError(error);
                 return;
             }
+            if (cancelled) return;
             const elapsed = Math.max(1, now() - started);
             batchSize = Math.min(50000, Math.max(1000, Math.round(batchSize * 5 / elapsed)));
-            if (cursor < options.total) schedule(run); else if (options.onComplete) options.onComplete();
+            if (cursor < options.total) schedule(run);
+            else {
+                activeBuilds.delete(state);
+                if (options.onComplete) options.onComplete();
+            }
         }
 
-        schedule(run);
-        return {cancel() { cancelled = true; }};
+        try {
+            schedule(run);
+        } catch (error) {
+            activeBuilds.delete(state);
+            if (options.onError) options.onError(error);
+        }
+        return state;
     }
 
     function createFrameSampler(options) {
         const order = ['high', 'balanced', 'low', 'recovery'];
         const sampleSize = options.sampleSize || 120;
-        let profile = 'high';
+        let profile = selectInitialProfile(options.signals);
         let dynamicStride = 1;
         let builtCount = 0;
         let ready = false;
@@ -129,5 +182,23 @@
         global.dispatchEvent(new CustomEvent('observatory:ready', {detail}));
     }
 
-    global.ParticleBuilder = {allocate, build, createFrameSampler, markReady, visibleCount};
+    function cancelActiveBuilds() {
+        Array.from(activeBuilds).forEach((buildJob) => buildJob.cancel());
+        frameSamplers.clear();
+    }
+
+    if (typeof global.addEventListener === 'function') {
+        global.addEventListener('observatory:navigate-start', cancelActiveBuilds);
+        global.addEventListener('pagehide', cancelActiveBuilds);
+    }
+
+    global.ParticleBuilder = {
+        allocate,
+        build,
+        createFrameSampler,
+        markAttributeRange,
+        markReady,
+        selectInitialProfile,
+        visibleCount
+    };
 })(window);

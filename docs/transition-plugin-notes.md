@@ -1,76 +1,43 @@
-# NASA-Punk Observatory Transition Plugin Notes
+# NASA-Punk Observatory Transition Notes
 
-## Goal
+## Current runtime API
 
-The transition system should support:
+`scripts/core/transition.js` exposes one browser-global object:
 
-- keeping the current curtain animation as the default
-- switching to another animation style later
-- disabling transitions entirely
+- `TransitionManager.init()` installs the readiness listener and the 1,500 ms
+  startup reveal fallback. Entry pages call it automatically on
+  `DOMContentLoaded`.
+- `TransitionManager.navigate(url)` starts the exit curtain and assigns
+  `window.location.href` after the CSS `animationend` event, with a 900 ms
+  fallback. Repeated calls during one exit are ignored.
 
-This must not change the current visual result unless configuration explicitly requests a different effect.
+The transition module also dispatches `observatory:navigate-start` before the
+exit animation. The particle builder uses that internal event to cancel active
+surface-generation jobs before the page changes.
 
-## Current runtime contract
+## Configuration and effects
 
-`TransitionManager` now exposes:
+There is currently no effect registry, plugin API, or `TRANSITION_CONFIG`
+global. The curtain is the only built-in effect and is configured by
+`styles/transition.css` and the shared tokens in `styles/tokens.css`.
+Changing `window.TRANSITION_CONFIG`, or calling methods such as
+`registerEffect`, `use`, `setEnabled`, `getConfig`, or
+`getRegisteredEffects`, has no runtime effect because those methods are not
+part of the current implementation.
 
-- `TransitionManager.navigate(url)`
-- `TransitionManager.registerEffect(name, effect)`
-- `TransitionManager.use(name)`
-- `TransitionManager.setEnabled(enabled)`
-- `TransitionManager.getConfig()`
-- `TransitionManager.getRegisteredEffects()`
+The curtain remains opaque from the first paint: `html`, `body`, the WebGL
+containers, and the fixed curtain use the deep-space token `#070b12`.
 
-## Built-in effects
+## Palette note
 
-- `curtain`
-    - current default effect
-    - preserves the existing intro and exit behavior
-- `none`
-    - disables animation and navigates immediately
-
-## Optional global configuration
-
-Set a global `window.TRANSITION_CONFIG` before `transition.js` loads:
-
-```js
-window.TRANSITION_CONFIG = {
-    effect: 'curtain',
-    enabled: true
-};
-```
-
-Example with transitions disabled:
-
-```js
-window.TRANSITION_CONFIG = {
-    effect: 'none',
-    enabled: false
-};
-```
-
-## Effect plugin shape
-
-A transition effect plugin should provide:
-
-```js
-{
-    init: function ()
-    {
-    }
-,
-    navigate: function (url)
-    {
-    }
-}
-```
-
-Rules:
-
-- `init()` should prepare any DOM or startup animation it needs.
-- `navigate(url)` is responsible for finishing navigation.
-- If an effect cannot run safely, it should fall back to direct navigation.
+The two saturated `#4b70dd` marker dots in `styles/components.css` belong to
+the Earth and Neptune planet identity markers. They are intentionally kept
+separate from the shared cold technical-blue token `--const-blue: #5b789c`,
+which is used for HUD and transition chrome; replacing them would change the
+planet-specific visual mapping rather than unify semantic UI color.
 
 ## Non-regression rule
 
-Any new transition plugin must not alter the current curtain effect unless the task explicitly asks for a change.
+Any future transition extension must preserve direct `file://` opening,
+offline operation, readiness-gated reveal, single-flight navigation, and the
+opaque curtain unless the task explicitly changes those behaviors.

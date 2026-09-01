@@ -67,10 +67,13 @@ NASA-Punk_Observatory/
 
 The current visual language is built around:
 
-- Primary color: `#e06236`
-- Secondary highlight: `#d7ab61`
-- Warning color: `#c82337`
-- Cool background and scan elements: `#2f4c79`
+- Deep-space background: `#070b12`
+- Instrument panel: `#101821`
+- NASA signal orange: `#e06236`
+- Amber highlight: `#d7ab61`
+- Warning red: `#c8434d`
+- Cold technical blue: `#5b789c`
+- Instrument text: `#e7e3da`
 - Title font: `Jura`
 - Data font: `Roboto Mono`
 

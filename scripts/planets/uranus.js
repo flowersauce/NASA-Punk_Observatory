@@ -155,10 +155,8 @@ function createUranus()
             {
                 sampleSurfaceParticle(i, allocation.value.positions, allocation.value.colors);
             }
-            geo.attributes.position.updateRange = {offset: start * 3, count: (end - start) * 3};
-            geo.attributes.color.updateRange = {offset: start * 3, count: (end - start) * 3};
-            geo.attributes.position.needsUpdate = true;
-            geo.attributes.color.needsUpdate = true;
+            ParticleBuilder.markAttributeRange(geo.attributes.position, start * 3, (end - start) * 3);
+            ParticleBuilder.markAttributeRange(geo.attributes.color, start * 3, (end - start) * 3);
         },
         setDrawCount: frameSampler.setBuiltCount,
         onReady()
