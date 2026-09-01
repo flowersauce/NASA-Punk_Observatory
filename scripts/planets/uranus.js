@@ -67,6 +67,8 @@ uranusTiltGroup.add(ringGroup);
 const moonGroup = new THREE.Group();
 uranusTiltGroup.add(moonGroup);
 
+let frameSampler;
+
 
 // --- PART 3: 天王星主体 ---
 function createUranus()
@@ -92,6 +94,12 @@ function createUranus()
     });
     const planet = new THREE.Points(geo, mat);
     uranusSpinGroup.add(planet);
+
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry: geo,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
 
     const noiseGen      = new SimplexNoise('uranus-base');
 
@@ -154,7 +162,7 @@ function createUranus()
         },
         setDrawCount(count)
         {
-            geo.setDrawRange(0, count);
+            geo.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -587,9 +595,13 @@ if (typeof InteractionState !== 'undefined')
 group.rotation.x = 0.0;
 group.rotation.y = 0.2;
 
-function animate()
+let frameCount = 0;
+
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
 
     // 物理更新
     // 逆行自转

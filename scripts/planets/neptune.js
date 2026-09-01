@@ -68,6 +68,8 @@ planetTiltGroup.add(planetSpinGroup);
 const moonSystemGroup = new THREE.Group();
 group.add(moonSystemGroup);
 
+let frameSampler;
+
 
 // --- PART 3: 程序化海王星 (Atmosphere) ---
 function createNeptune()
@@ -94,6 +96,12 @@ function createNeptune()
     });
     const planet = new THREE.Points(geo, mat);
     planetSpinGroup.add(planet);
+
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry: geo,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
 
     const noiseGen      = new SimplexNoise('neptune-wind-shear');
 
@@ -173,7 +181,7 @@ function createNeptune()
         },
         setDrawCount(count)
         {
-            geo.setDrawRange(0, count);
+            geo.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -460,9 +468,13 @@ if (typeof InteractionState !== 'undefined')
 group.rotation.x = 0.3;
 group.rotation.y = 0.0;
 
-function animate()
+let frameCount = 0;
+
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
 
     planetSpinGroup.rotation.y += 0.003;
 

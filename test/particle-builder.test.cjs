@@ -37,6 +37,28 @@ test('visibleCount selects approved profile counts', () => {
     assert.equal(api.visibleCount(1_600_000, 'recovery'), 250_000);
 });
 
+test('frame sampler reduces dynamic cadence before static draw count', () => {
+    const {api} = loadBuilder();
+    const draws = [];
+    const strides = [];
+    const sampler = api.createFrameSampler({
+        geometry: {setDrawRange: (start, count) => draws.push([start, count])},
+        maxCount: 1_000_000,
+        setDynamicStride: (stride) => strides.push(stride),
+        sampleSize: 4
+    });
+
+    [0, 40, 80, 120, 160].forEach((time) => sampler.sample(time));
+    assert.equal(sampler.profile, 'high');
+    assert.equal(sampler.dynamicStride, 2);
+    [200, 240, 280, 320].forEach((time) => sampler.sample(time));
+    assert.equal(sampler.profile, 'recovery');
+    assert.deepEqual(draws.at(-1), [0, 250_000]);
+    [337, 354, 371, 388].forEach((time) => sampler.sample(time));
+    assert.equal(sampler.profile, 'recovery');
+    assert.deepEqual(strides, [2]);
+});
+
 test('allocate falls through to the first feasible count', () => {
     const {api} = loadBuilder();
     const result = api.allocate([1_000_000, 750_000, 500_000, 250_000], (count) => {
@@ -149,6 +171,7 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
     const completionEvents = [];
     const errors = [];
     const noiseLabels = [];
+    const samplers = [];
     const surfacePoints = [];
     const points = [];
     const lines = [];
@@ -526,6 +549,12 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         const allocation = originalAllocate([allocationCount], factory);
         return allocation;
     };
+    const originalCreateFrameSampler = ParticleBuilder.createFrameSampler;
+    ParticleBuilder.createFrameSampler = (options) => {
+        const sampler = originalCreateFrameSampler(options);
+        samplers.push({options, sampler});
+        return sampler;
+    };
     const originalBuild = ParticleBuilder.build;
     ParticleBuilder.build = (options) => {
         builds.push(options);
@@ -559,6 +588,7 @@ function loadPlanetRuntime(planetName, {allocationCount = 300000} = {}) {
         completionEvents,
         errors,
         noiseLabels,
+        samplers,
         points,
         lines,
         surface: surfacePoints[0],
@@ -731,6 +761,28 @@ test('venus creates no per-particle cloud clones during initialization or animat
     env.animationCallbacks[0]();
     assert.equal(env.noiseLabels.filter((label) => label === 'venus-atmosphere-flow').length, flowNoiseCount);
     assert.equal(env.colorClones, cloneCount);
+});
+
+test('every planet runtime samples profile state in its existing animation loop', () => {
+    for (const planetName of [...Object.keys(ROCKY_BUDGETS), ...Object.keys(GIANT_BUDGETS), 'sun']) {
+        const env = loadPlanetRuntime(planetName);
+        assert.equal(env.samplers.length, 1, `${planetName} sampler count`);
+        const sampler = env.samplers[0].sampler;
+        const sampled = [];
+        const sample = sampler.sample;
+        sampler.sample = (time) => {
+            sampled.push(time);
+            return sample(time);
+        };
+        const tick = (time) => {
+            const callback = env.animationCallbacks.shift();
+            assert.equal(typeof callback, 'function', `${planetName} animation callback`);
+            callback(time);
+        };
+
+        tick(16);
+        assert.deepEqual(sampled, [16], `${planetName} frame sample`);
+    }
 });
 
 test('particle builder reports a batch error without completing', () => {

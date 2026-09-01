@@ -73,6 +73,8 @@ const moonSystemGroup      = new THREE.Group();
 moonSystemGroup.rotation.z = 5.14 * (Math.PI / 180);
 group.add(moonSystemGroup);
 
+let frameSampler;
+
 
 // --- A. 程序化地球 ---
 function createEarth()
@@ -106,6 +108,12 @@ function createEarth()
     });
     const points = new THREE.Points(geometry, surfaceMaterial);
     earthSystemGroup.add(points);
+
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
 
     function sampleSurfaceParticle(i, positions, colors)
     {
@@ -185,7 +193,7 @@ function createEarth()
         },
         setDrawCount(count)
         {
-            geometry.setDrawRange(0, count);
+            geometry.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -374,9 +382,13 @@ if (typeof InteractionState !== 'undefined')
 group.rotation.x = 0.2;
 group.rotation.y = 0.0;
 
-function animate()
+let frameCount = 0;
+
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
 
     // 1. 地球自转
     earthSystemGroup.rotation.y += 0.0015;

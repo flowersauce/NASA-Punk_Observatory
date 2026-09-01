@@ -73,6 +73,7 @@ planetTiltGroup.add(cloudGroup);
 
 // --- PART 3: 程序化金星主体 (双层点云结构) ---
 let cloudPoints;
+let frameSampler;
 const coreRadius = 5.0;
 const venusFlowNoise = new SimplexNoise('venus-atmosphere-flow');
 const venusCloudBaseColor = new THREE.Color('#ffae20');
@@ -109,6 +110,12 @@ function createVenusSurface()
     });
     const points = new THREE.Points(geometry, surfaceMaterial);
     venusSurfaceGroup.add(points);
+
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
 
     function sampleSurfaceParticle(i, positions, colors)
     {
@@ -173,7 +180,7 @@ function createVenusSurface()
         },
         setDrawCount(count)
         {
-            geometry.setDrawRange(0, count);
+            geometry.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -273,9 +280,13 @@ if (typeof InteractionState !== 'undefined')
 group.rotation.x = -0.2;
 group.rotation.y = 0.0;
 
-function animate()
+let frameCount = 0;
+
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
 
     // 1. 地表逆行自转 (极慢)
     venusSurfaceGroup.rotation.y -= 0.0002;
@@ -284,26 +295,29 @@ function animate()
     cloudGroup.rotation.y -= 0.0015;
 
     // 3. 云层颜色动画 (仅通过颜色/亮度变化模拟流动)
-    const time      = Date.now() * 0.00005;
-    const colors    = cloudPoints.geometry.attributes.color.array;
-    const positions = cloudPoints.geometry.attributes.position.array;
-
-    for (let i = 0; i < positions.length / 3; i++)
+    if (frameCount % frameSampler.dynamicStride === 0)
     {
-        let x = positions[i * 3];
-        let y = positions[i * 3 + 1];
-        let z = positions[i * 3 + 2];
+        const time      = Date.now() * 0.00005;
+        const colors    = cloudPoints.geometry.attributes.color.array;
+        const positions = cloudPoints.geometry.attributes.position.array;
 
-        const flowNoise = venusFlowNoise.noise3D(x * 0.2 + time, y * 0.2 + time, z * 0.2 + time);
+        for (let i = 0; i < positions.length / 3; i++)
+        {
+            const x = positions[i * 3];
+            const y = positions[i * 3 + 1];
+            const z = positions[i * 3 + 2];
 
-        const brightness = 1.0 + flowNoise * 0.25;
+            const flowNoise = venusFlowNoise.noise3D(x * 0.2 + time, y * 0.2 + time, z * 0.2 + time);
 
-        colors[i * 3]     = venusCloudBaseColor.r * brightness;
-        colors[i * 3 + 1] = venusCloudBaseColor.g * brightness;
-        colors[i * 3 + 2] = venusCloudBaseColor.b * brightness;
+            const brightness = 1.0 + flowNoise * 0.25;
+
+            colors[i * 3]     = venusCloudBaseColor.r * brightness;
+            colors[i * 3 + 1] = venusCloudBaseColor.g * brightness;
+            colors[i * 3 + 2] = venusCloudBaseColor.b * brightness;
+        }
+
+        cloudPoints.geometry.attributes.color.needsUpdate = true;
     }
-
-    cloudPoints.geometry.attributes.color.needsUpdate = true;
 
     // 4. 视角和缩放控制
     currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);

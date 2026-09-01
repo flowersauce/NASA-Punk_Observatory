@@ -69,6 +69,7 @@ let sunSurfaceGeometry;
 let sunSurfaceParticles;
 let sunGeometry;
 let sunParticles;
+let frameSampler;
 const sunNoiseGen = new SimplexNoise('sol-core-v1');
 const timeStep    = 0.005;
 
@@ -160,6 +161,12 @@ function createSunSurface()
     sunSurfaceParticles = new THREE.Points(sunSurfaceGeometry, surfaceMaterial);
     sunGroup.add(sunSurfaceParticles);
 
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry: sunSurfaceGeometry,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
+
     ParticleBuilder.build({
         total           : allocation.count,
         readyCount      : Math.min(250000, allocation.count),
@@ -177,7 +184,7 @@ function createSunSurface()
         },
         setDrawCount(count)
         {
-            sunSurfaceGeometry.setDrawRange(0, count);
+            sunSurfaceGeometry.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -542,10 +549,13 @@ group.rotation.x = 0.0;
 group.rotation.y = 0.0;
 
 let time = 0;
+let frameCount = 0;
 
-function animate()
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
     time += timeStep;
 
     sunGroup.rotation.y += 0.001;
@@ -564,7 +574,7 @@ function animate()
         sunGrids.outer.rotation.z += 0.0002;
     }
 
-    if (sunParticles && sunGeometry)
+    if (sunParticles && sunGeometry && frameCount % frameSampler.dynamicStride === 0)
     {
         const positions = sunGeometry.attributes.position.array;
         const colors    = sunGeometry.attributes.color.array;
@@ -617,7 +627,7 @@ function animate()
         sunGeometry.attributes.color.needsUpdate    = true;
     }
 
-    if (coronaMesh)
+    if (coronaMesh && frameCount % frameSampler.dynamicStride === 0)
     {
         const positions  = coronaMesh.geometry.attributes.position.array;
         const speeds     = coronaMesh.userData.speeds;
@@ -663,70 +673,74 @@ function animate()
         loop.mesh.material.opacity = 0.4 + Math.sin(time * 2 + loop.flowOffset) * 0.2;
     });
 
-    if (Math.random() > 0.995)
+    if (frameCount % frameSampler.dynamicStride === 0)
     {
-        triggerEruption();
-    }
-
-    const pPos = eruptionGeo.attributes.position.array;
-    const pCol = eruptionGeo.attributes.color.array;
-
-    const slowMo = 0.15;
-
-    for (let i = 0; i < maxEruptionParticles; i++)
-    {
-        if (eruptionData[i].active)
+        if (Math.random() > 0.995)
         {
-            pPos[i * 3] += eruptionData[i].velocity.x * slowMo;
-            pPos[i * 3 + 1] += eruptionData[i].velocity.y * slowMo;
-            pPos[i * 3 + 2] += eruptionData[i].velocity.z * slowMo;
+            triggerEruption();
+        }
 
-            const cx          = pPos[i * 3];
-            const cy          = pPos[i * 3 + 1];
-            const cz          = pPos[i * 3 + 2];
-            const currentDist = Math.sqrt(cx * cx + cy * cy + cz * cz);
-            directionToCenter.set(-cx, -cy, -cz).normalize();
+        const pPos = eruptionGeo.attributes.position.array;
+        const pCol = eruptionGeo.attributes.color.array;
 
-            const noiseScale = 0.5;
-            const nX         = sunNoiseGen.noise4D(cx * noiseScale, cy * noiseScale, cz * noiseScale, time) * 0.003;
-            const nY         = sunNoiseGen.noise4D(cy * noiseScale, cz * noiseScale, cx * noiseScale, time + 100) * 0.003;
-            const nZ         = sunNoiseGen.noise4D(cz * noiseScale, cx * noiseScale, cy * noiseScale, time + 200) * 0.003;
+        const slowMo = 0.15;
 
-            eruptionData[i].velocity.x += nX * slowMo;
-            eruptionData[i].velocity.y += nY * slowMo;
-            eruptionData[i].velocity.z += nZ * slowMo;
-
-            eruptionData[i].velocity.addScaledVector(directionToCenter, 0.002 * slowMo);
-            eruptionData[i].velocity.multiplyScalar(1.0 - (0.003 * slowMo));
-
-            eruptionData[i].life += 1.0 * slowMo;
-            const progress = eruptionData[i].life / eruptionData[i].maxLife;
-
-            const c = scratchColor;
-            if (progress < 0.15)
+        for (let i = 0; i < maxEruptionParticles; i++)
+        {
+            if (eruptionData[i].active)
             {
-                c.copy(colEruptHot).lerp(colEruptMid, progress / 0.15);
-            }
-            else
-            {
-                c.copy(colEruptMid).lerp(colEruptCool, (progress - 0.15) / 0.85);
-            }
+                pPos[i * 3] += eruptionData[i].velocity.x * slowMo;
+                pPos[i * 3 + 1] += eruptionData[i].velocity.y * slowMo;
+                pPos[i * 3 + 2] += eruptionData[i].velocity.z * slowMo;
 
-            pCol[i * 3]     = c.r;
-            pCol[i * 3 + 1] = c.g;
-            pCol[i * 3 + 2] = c.b;
+                const cx          = pPos[i * 3];
+                const cy          = pPos[i * 3 + 1];
+                const cz          = pPos[i * 3 + 2];
+                const currentDist = Math.sqrt(cx * cx + cy * cy + cz * cz);
+                directionToCenter.set(-cx, -cy, -cz).normalize();
 
-            if (eruptionData[i].life >= eruptionData[i].maxLife || currentDist < 5.8)
-            {
-                eruptionData[i].active = false;
-                pPos[i * 3]            = 0;
-                pPos[i * 3 + 1]        = 0;
-                pPos[i * 3 + 2]        = 0;
+                const noiseScale = 0.5;
+                const nX         = sunNoiseGen.noise4D(cx * noiseScale, cy * noiseScale, cz * noiseScale, time) * 0.003;
+                const nY         = sunNoiseGen.noise4D(cy * noiseScale, cz * noiseScale, cx * noiseScale, time + 100) * 0.003;
+                const nZ         = sunNoiseGen.noise4D(cz * noiseScale, cx * noiseScale, cy * noiseScale, time + 200) * 0.003;
+
+                eruptionData[i].velocity.x += nX * slowMo;
+                eruptionData[i].velocity.y += nY * slowMo;
+                eruptionData[i].velocity.z += nZ * slowMo;
+
+                eruptionData[i].velocity.addScaledVector(directionToCenter, 0.002 * slowMo);
+                eruptionData[i].velocity.multiplyScalar(1.0 - (0.003 * slowMo));
+
+                eruptionData[i].life += 1.0 * slowMo;
+                const progress = eruptionData[i].life / eruptionData[i].maxLife;
+
+                const c = scratchColor;
+                if (progress < 0.15)
+                {
+                    c.copy(colEruptHot).lerp(colEruptMid, progress / 0.15);
+                }
+                else
+                {
+                    c.copy(colEruptMid).lerp(colEruptCool, (progress - 0.15) / 0.85);
+                }
+
+                pCol[i * 3]     = c.r;
+                pCol[i * 3 + 1] = c.g;
+                pCol[i * 3 + 2] = c.b;
+
+                if (eruptionData[i].life >= eruptionData[i].maxLife || currentDist < 5.8)
+                {
+                    eruptionData[i].active = false;
+                    pPos[i * 3]            = 0;
+                    pPos[i * 3 + 1]        = 0;
+                    pPos[i * 3 + 2]        = 0;
+                }
             }
         }
+
+        eruptionGeo.attributes.position.needsUpdate = true;
+        eruptionGeo.attributes.color.needsUpdate    = true;
     }
-    eruptionGeo.attributes.position.needsUpdate = true;
-    eruptionGeo.attributes.color.needsUpdate    = true;
 
     currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
     updatePlanetTelemetry(sunGroup, tgtLabel, 1);

@@ -74,6 +74,7 @@ const ringUniforms = {
         value: 0.0
     }
 };
+let frameSampler;
 
 
 // --- A. 程序化气态巨行星 (SATURN) ---
@@ -100,6 +101,12 @@ function createGasGiant()
     });
     const planet = new THREE.Points(geo, mat);
     planetSpinGroup.add(planet);
+
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry: geo,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
 
     const noiseGen      = new SimplexNoise('saturn-seed-v2');
 
@@ -174,7 +181,7 @@ function createGasGiant()
         },
         setDrawCount(count)
         {
-            geo.setDrawRange(0, count);
+            geo.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -593,10 +600,13 @@ group.rotation.x = 0.0;
 group.rotation.y = 0.0;
 
 let time = 0;
+let frameCount = 0;
 
-function animate()
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
     time += 0.002;
 
     planetSpinGroup.rotation.y += 0.002;

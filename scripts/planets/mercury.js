@@ -67,6 +67,8 @@ planetTiltGroup.add(planetSpinGroup);
 const tailGroup = new THREE.Group();
 planetTiltGroup.add(tailGroup);
 
+let frameSampler;
+
 
 // --- PART 3: 水星本体 ---
 function createMercury()
@@ -93,6 +95,12 @@ function createMercury()
     });
     const points = new THREE.Points(geometry, surfaceMaterial);
     planetSpinGroup.add(points);
+
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
 
     const noiseGen = new SimplexNoise('mercury-surface');
     const colBase  = new THREE.Color('#999999');
@@ -162,7 +170,7 @@ function createMercury()
         },
         setDrawCount(count)
         {
-            geometry.setDrawRange(0, count);
+            geometry.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -349,13 +357,20 @@ if (typeof InteractionState !== 'undefined')
 group.rotation.x = 0.2;
 group.rotation.y = -0.6;
 
-function animate()
+let frameCount = 0;
+
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
 
     planetSpinGroup.rotation.y += 0.0003;
 
-    updateSodiumTail();
+    if (frameCount % frameSampler.dynamicStride === 0)
+    {
+        updateSodiumTail();
+    }
 
     currentZoom = updateInteraction(group, camera, zoomDisplay, currentZoom);
     updatePlanetTelemetry(planetSpinGroup, tgtLabel, 1);

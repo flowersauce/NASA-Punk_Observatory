@@ -62,9 +62,50 @@
         return {cancel() { cancelled = true; }};
     }
 
+    function createFrameSampler(options) {
+        const order = ['high', 'balanced', 'low', 'recovery'];
+        const sampleSize = options.sampleSize || 120;
+        let profile = 'high';
+        let dynamicStride = 1;
+        let lastTime = null;
+        let deltas = [];
+
+        function sample(timestamp) {
+            if (!Number.isFinite(timestamp)) return;
+            if (lastTime !== null) {
+                const delta = timestamp - lastTime;
+                if (delta > 0 && delta <= 250) deltas.push(delta);
+            }
+            lastTime = timestamp;
+            if (deltas.length < sampleSize) return;
+
+            const average = deltas.reduce((sum, value) => sum + value, 0) / deltas.length;
+            const fps = 1000 / average;
+            deltas = [];
+            if (fps >= 55) return;
+            if (dynamicStride === 1) {
+                dynamicStride = 2;
+                options.setDynamicStride(2);
+                return;
+            }
+
+            const candidate = fps < 30 ? 'recovery' : fps < 40 ? 'low' : fps < 50 ? 'balanced' : 'high';
+            if (order.indexOf(candidate) > order.indexOf(profile)) {
+                profile = candidate;
+                options.geometry.setDrawRange(0, visibleCount(options.maxCount, profile));
+            }
+        }
+
+        return {
+            sample,
+            get profile() { return profile; },
+            get dynamicStride() { return dynamicStride; }
+        };
+    }
+
     function markReady(detail) {
         global.dispatchEvent(new CustomEvent('observatory:ready', {detail}));
     }
 
-    global.ParticleBuilder = {allocate, build, markReady, visibleCount};
+    global.ParticleBuilder = {allocate, build, createFrameSampler, markReady, visibleCount};
 })(window);

@@ -75,6 +75,8 @@ planetTiltGroup.add(marsAtmosGroup);
 const marsMoonGroup = new THREE.Group();
 planetTiltGroup.add(marsMoonGroup);
 
+let frameSampler;
+
 
 // --- PART 3: 程序化火星主体 ---
 const coreRadius = 5.0;
@@ -111,6 +113,12 @@ function createMarsSurface()
     });
     const points = new THREE.Points(geometry, surfaceMaterial);
     marsSurfaceGroup.add(points);
+
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
 
     function sampleSurfaceParticle(i, positions, colors)
     {
@@ -178,7 +186,7 @@ function createMarsSurface()
         },
         setDrawCount(count)
         {
-            geometry.setDrawRange(0, count);
+            geometry.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -410,9 +418,13 @@ if (typeof InteractionState !== 'undefined')
 group.rotation.x = 0.2;
 group.rotation.y = 0.0;
 
-function animate()
+let frameCount = 0;
+
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
 
     marsSurfaceGroup.rotation.y += 0.0025;
     marsAtmosGroup.rotation.y += 0.003;

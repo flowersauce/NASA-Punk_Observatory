@@ -76,6 +76,7 @@ jupiterTiltGroup.add(moonGroup);
 
 // --- PART 3: 程序化木星主体 ---
 let jupiterSurface, jupiterAtmos;
+let frameSampler;
 const ringUniforms = {
     uTime: {
         value: 0.0
@@ -107,6 +108,12 @@ function createJupiter()
 
     jupiterSurface = new THREE.Points(geo, mat);
     jupiterSpinGroup.add(jupiterSurface);
+
+    frameSampler = ParticleBuilder.createFrameSampler({
+        geometry: geo,
+        maxCount: allocation.count,
+        setDynamicStride() {}
+    });
 
     const noiseGen = new SimplexNoise('jupiter-ultimate-final');
     const surfaceColor = new THREE.Color();
@@ -211,7 +218,7 @@ function createJupiter()
         },
         setDrawCount(count)
         {
-            geo.setDrawRange(0, count);
+            geo.setDrawRange(0, Math.min(count, ParticleBuilder.visibleCount(allocation.count, frameSampler.profile)));
         },
         onReady()
         {
@@ -664,9 +671,13 @@ if (typeof InteractionState !== 'undefined')
 group.rotation.x = 0.2;
 group.rotation.y = 0.0;
 
-function animate()
+let frameCount = 0;
+
+function animate(timestamp)
 {
     requestAnimationFrame(animate);
+    frameCount++;
+    frameSampler.sample(timestamp);
     const time = Date.now() * 0.001;
 
     // 1. 木星自转
@@ -698,7 +709,7 @@ function animate()
     });
 
     // 4. 大红斑内部流体
-    if (redSpotMesh)
+    if (redSpotMesh && frameCount % frameSampler.dynamicStride === 0)
     {
         const positions = redSpotMesh.geometry.attributes.position.array;
         const data      = redSpotMesh.userData.particles;
