@@ -200,6 +200,65 @@ test('cancel prevents queued batches from writing', () => {
     assert.equal(writes, 0);
 });
 
+test('build reports a throwing clock once and leaves no active job', () => {
+    const env = loadBuilder();
+    const queue = [];
+    const errors = [];
+    let nowCalls = 0;
+    let writes = 0;
+    let completions = 0;
+    env.api.build({
+        total: 20_000,
+        readyCount: 250_000,
+        initialBatchSize: 10_000,
+        writeBatch: () => writes++,
+        setDrawCount: () => {},
+        onComplete: () => completions++,
+        onError: (error) => errors.push(error.message),
+        schedule: (callback) => queue.push(callback),
+        now: () => {
+            nowCalls++;
+            if (nowCalls === 2) throw new Error('clock failed');
+            return 0;
+        }
+    });
+
+    queue.shift()();
+    env.window.dispatchEvent({type: 'observatory:navigate-start'});
+    while (queue.length) queue.shift()();
+    assert.equal(writes, 1);
+    assert.deepEqual(errors, ['clock failed']);
+    assert.equal(completions, 0);
+});
+
+test('build reports a throwing reschedule once and leaves no active job', () => {
+    const env = loadBuilder();
+    const queue = [];
+    const errors = [];
+    let scheduleCalls = 0;
+    let completions = 0;
+    env.api.build({
+        total: 300_000,
+        readyCount: 250_000,
+        initialBatchSize: 10_000,
+        writeBatch: () => {},
+        setDrawCount: () => {},
+        onComplete: () => completions++,
+        onError: (error) => errors.push(error.message),
+        schedule: (callback) => {
+            scheduleCalls++;
+            if (scheduleCalls === 1) queue.push(callback);
+            else throw new Error('scheduler failed');
+        },
+        now: () => 0
+    });
+
+    queue.shift()();
+    env.window.dispatchEvent({type: 'pagehide'});
+    assert.deepEqual(errors, ['scheduler failed']);
+    assert.equal(completions, 0);
+});
+
 test('markAttributeRange merges pending disjoint and adjacent ranges until upload reset', () => {
     const {api} = loadBuilder();
     const attribute = {updateRange: {offset: 0, count: -1}, needsUpdate: false};
@@ -243,6 +302,57 @@ test('navigation and pagehide cancel active builds and clear sampler readiness',
         assert.equal(writes, 0, `${eventType} stops queued writes`);
         assert.equal(sampler.ready, false, `${eventType} clears stale sampler registry`);
     }
+});
+
+test('real lifecycle resets ready state and timing samples', () => {
+    const env = loadBuilder();
+    const sampler = env.api.createFrameSampler({
+        geometry: {setDrawRange() {}},
+        maxCount: 1_000_000,
+        setDynamicStride: () => {},
+        sampleSize: 2
+    });
+    env.api.markReady({page: 'ready'});
+    sampler.sample(0);
+    sampler.sample(40);
+    env.window.dispatchEvent({type: 'observatory:navigate-start'});
+    assert.equal(sampler.ready, false);
+
+    sampler.markReady();
+    sampler.sample(100);
+    assert.equal(sampler.dynamicStride, 1, 'reset discarded the pre-lifecycle delta');
+    sampler.sample(140);
+    sampler.sample(180);
+    assert.equal(sampler.dynamicStride, 2);
+});
+
+test('persisted pagehide keeps builders and ready samplers alive', () => {
+    const env = loadBuilder();
+    const queue = [];
+    let completions = 0;
+    let writes = 0;
+    const sampler = env.api.createFrameSampler({
+        geometry: {setDrawRange() {}},
+        maxCount: 1_000_000,
+        setDynamicStride: () => {}
+    });
+    env.api.markReady({page: 'persisted'});
+    env.api.build({
+        total: 20_000,
+        readyCount: 250_000,
+        initialBatchSize: 10_000,
+        writeBatch: () => writes++,
+        setDrawCount: () => {},
+        onComplete: () => completions++,
+        schedule: (callback) => queue.push(callback),
+        now: () => 0
+    });
+
+    env.window.dispatchEvent({type: 'pagehide', persisted: true});
+    while (queue.length) queue.shift()();
+    assert.equal(sampler.ready, true);
+    assert.ok(writes > 0);
+    assert.equal(completions, 1);
 });
 
 test('planet config exposes every approved particle budget', () => {

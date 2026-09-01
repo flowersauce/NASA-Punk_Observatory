@@ -58,29 +58,41 @@
 
     function build(options) {
         let cursor = 0;
-        let cancelled = false;
+        let terminal = false;
         let readySent = false;
         let batchSize = Math.min(options.initialBatchSize || 10000, options.total);
         let lastPercent = -1;
         const schedule = options.schedule || defaultSchedule;
         const now = options.now || (() => performance.now());
+
+        function cleanup() {
+            activeBuilds.delete(state);
+        }
+
+        function fail(error) {
+            if (terminal) return;
+            terminal = true;
+            cleanup();
+            if (options.onError) options.onError(error);
+        }
+
         const state = {
             cancel() {
-                if (cancelled) return;
-                cancelled = true;
-                activeBuilds.delete(state);
+                if (terminal) return;
+                terminal = true;
+                cleanup();
             }
         };
 
         activeBuilds.add(state);
 
         function run() {
-            if (cancelled) return;
-            const started = now();
-            const end = Math.min(options.total, cursor + batchSize);
+            if (terminal) return;
             try {
+                const started = now();
+                const end = Math.min(options.total, cursor + batchSize);
                 options.writeBatch(cursor, end);
-                if (cancelled) return;
+                if (terminal) return;
                 cursor = end;
                 options.setDrawCount(cursor);
                 if (!readySent && cursor >= (options.readyCount || 250000)) {
@@ -92,26 +104,24 @@
                     lastPercent = percent;
                     if (options.onProgress) options.onProgress(percent);
                 }
+                if (terminal) return;
+                const elapsed = Math.max(1, now() - started);
+                batchSize = Math.min(50000, Math.max(1000, Math.round(batchSize * 5 / elapsed)));
+                if (cursor < options.total) schedule(run);
+                else {
+                    terminal = true;
+                    cleanup();
+                    if (options.onComplete) options.onComplete();
+                }
             } catch (error) {
-                activeBuilds.delete(state);
-                if (options.onError) options.onError(error);
-                return;
-            }
-            if (cancelled) return;
-            const elapsed = Math.max(1, now() - started);
-            batchSize = Math.min(50000, Math.max(1000, Math.round(batchSize * 5 / elapsed)));
-            if (cursor < options.total) schedule(run);
-            else {
-                activeBuilds.delete(state);
-                if (options.onComplete) options.onComplete();
+                fail(error);
             }
         }
 
         try {
             schedule(run);
         } catch (error) {
-            activeBuilds.delete(state);
-            if (options.onError) options.onError(error);
+            fail(error);
         }
         return state;
     }
@@ -139,7 +149,19 @@
             ready = true;
         }
 
-        frameSamplers.add(setReady);
+        function reset() {
+            ready = false;
+            lastTime = null;
+            deltas = [];
+        }
+
+        const registryEntry = {setReady, reset};
+        frameSamplers.add(registryEntry);
+
+        function dispose() {
+            reset();
+            frameSamplers.delete(registryEntry);
+        }
 
         function sample(timestamp) {
             if (!ready || !Number.isFinite(timestamp)) return;
@@ -171,6 +193,8 @@
             sample,
             setBuiltCount,
             markReady: setReady,
+            reset,
+            dispose,
             get profile() { return profile; },
             get dynamicStride() { return dynamicStride; },
             get ready() { return ready; }
@@ -178,18 +202,22 @@
     }
 
     function markReady(detail) {
-        frameSamplers.forEach((setReady) => setReady());
+        frameSamplers.forEach(({setReady}) => setReady());
         global.dispatchEvent(new CustomEvent('observatory:ready', {detail}));
     }
 
     function cancelActiveBuilds() {
         Array.from(activeBuilds).forEach((buildJob) => buildJob.cancel());
+        frameSamplers.forEach(({reset}) => reset());
         frameSamplers.clear();
     }
 
     if (typeof global.addEventListener === 'function') {
         global.addEventListener('observatory:navigate-start', cancelActiveBuilds);
-        global.addEventListener('pagehide', cancelActiveBuilds);
+        global.addEventListener('pagehide', (event) => {
+            if (event && event.persisted === true) return;
+            cancelActiveBuilds();
+        });
     }
 
     global.ParticleBuilder = {
